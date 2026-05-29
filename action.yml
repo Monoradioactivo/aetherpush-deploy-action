@@ -1,0 +1,215 @@
+name: 'Aether Deploy'
+description: 'Push React Native over-the-air updates with Aether'
+author: 'Aether'
+
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+
+  access-key:
+    description: |
+      Aether API key for authentication. Generate one via `aether api-key add --scope deploy`
+      or in the Aether dashboard, then store as a GitHub secret. Do not use session access
+      keys created with `aether access-key add` — they invalidate when the owner resets their
+      password and have a fixed 60-day expiration.
+    required: true
+
+  app-name:
+    description: 'Name of the Aether app to release to.'
+    required: true
+
+  command:
+    description: 'Which CLI command to run. One of: `release`, `release-react`.'
+    required: false
+    default: 'release-react'
+
+  node-version:
+    description: 'Node.js version installed by setup-node. The CLI requires Node 22 or newer.'
+    required: false
+    default: '22'
+
+  api-url:
+    description: |
+      Override the Aether server URL. Leave empty for the CLI built-in default (production).
+      Set to `https://api-staging.aetherpush.com` to deploy against staging.
+    required: false
+    default: ''
+
+  deployment-name:
+    description: 'Aether deployment channel to release into.'
+    required: false
+    default: 'Staging'
+
+  description:
+    description: 'Release description (free text). If `ci-metadata` is on, the CLI appends a `[ci=...]` bracket.'
+    required: false
+    default: ''
+
+  mandatory:
+    description: 'Mark the release as mandatory. The SDK forces install on clients.'
+    required: false
+    default: 'false'
+
+  rollout:
+    description: 'Percentage of clients eligible for this release (e.g. `100%`, `25%`).'
+    required: false
+    default: '100%'
+
+  disabled:
+    description: 'Upload the release in a disabled state. It will not be served until enabled.'
+    required: false
+    default: 'false'
+
+  no-duplicate-release-error:
+    description: 'When set to `true`, releasing an identical package produces a warning instead of an error.'
+    required: false
+    default: 'false'
+
+  ci-metadata:
+    description: |
+      Enrich the release description with CI metadata (`[ci=github sha=... branch=... pr=... run=...]`).
+      The CLI auto-detects GitHub Actions. Set to `false` to opt out.
+    required: false
+    default: 'true'
+
+  force:
+    description: 'Skip the CLI confirmation prompts for destructive operations.'
+    required: false
+    default: 'false'
+
+  update-contents-path:
+    description: |
+      `release` only. Path to the bundle file or directory to upload.
+      Required when `command` is `release`. Ignored for `release-react`.
+    required: false
+    default: ''
+
+  target-binary-version:
+    description: |
+      Semver range of native binary versions this release targets (e.g. `1.0.0`, `~1.2.0`, `>=2.0.0 <3.0.0`).
+      Required for `release`. For `release-react`, omit to read the version from the project
+      (`Info.plist` on iOS, `build.gradle` on Android).
+    required: false
+    default: ''
+
+  platform:
+    description: '`release-react` only. Target platform. One of: `ios`, `android`.'
+    required: false
+    default: ''
+
+  bundle-name:
+    description: '`release-react` only. JS bundle filename. Defaults to `main.jsbundle` (iOS) or `index.android.bundle` (Android).'
+    required: false
+    default: ''
+
+  entry-file:
+    description: '`release-react` only. Path to the app entry JS file. Defaults to `index.<platform>.js`, falling back to `index.js`.'
+    required: false
+    default: ''
+
+  gradle-file:
+    description: '`release-react` only (Android). Path to the gradle file specifying the binary version.'
+    required: false
+    default: ''
+
+  plist-file:
+    description: '`release-react` only (iOS). Path to the plist file specifying the binary version.'
+    required: false
+    default: ''
+
+  use-hermes:
+    description: '`release-react` only. Enable Hermes and bypass automatic detection checks.'
+    required: false
+    default: 'false'
+
+  development:
+    description: '`release-react` only. Build a development bundle instead of release.'
+    required: false
+    default: 'false'
+
+  output-dir:
+    description: '`release-react` only. Directory to write the bundle and sourcemap to.'
+    required: false
+    default: ''
+
+  sourcemap-output:
+    description: '`release-react` only. Path to write the sourcemap to. Omit to skip sourcemap generation.'
+    required: false
+    default: ''
+
+  private-key-path:
+    description: '`release-react` only. Path to the private key for code signing.'
+    required: false
+    default: ''
+
+outputs:
+
+  status:
+    description: '`success` if the release completed and the CLI emitted a valid JSON payload; `failure` otherwise.'
+    value: ${{ steps.aether.outputs.status }}
+
+  label:
+    description: 'Release label assigned by the server (e.g. `v4`).'
+    value: ${{ steps.aether.outputs.label }}
+
+  package-hash:
+    description: 'SHA-256 hash of the released package contents.'
+    value: ${{ steps.aether.outputs.package-hash }}
+
+  size:
+    description: 'Package size in bytes.'
+    value: ${{ steps.aether.outputs.size }}
+
+  app-version:
+    description: 'Binary app version (or range) the release targets.'
+    value: ${{ steps.aether.outputs.app-version }}
+
+  blob-url:
+    description: 'Signed URL to download the package bundle. Time-limited — not a CDN URL.'
+    value: ${{ steps.aether.outputs.blob-url }}
+
+  manifest-blob-url:
+    description: 'Signed URL to the package manifest (file hash map).'
+    value: ${{ steps.aether.outputs.manifest-blob-url }}
+
+  description:
+    description: 'Final release description as stored on the server, with the `[ci=...]` bracket appended when applicable.'
+    value: ${{ steps.aether.outputs.description }}
+
+  released-by:
+    description: 'Email of the account that owns the API key used to release.'
+    value: ${{ steps.aether.outputs.released-by }}
+
+  release-method:
+    description: 'How the release was produced. One of: `Upload`, `Promote`, `Rollback`.'
+    value: ${{ steps.aether.outputs.release-method }}
+
+  upload-time:
+    description: 'Unix timestamp in milliseconds when the release was committed.'
+    value: ${{ steps.aether.outputs.upload-time }}
+
+  rollout:
+    description: 'Rollout percentage as a string (e.g. `25`). Empty when the rollout is complete.'
+    value: ${{ steps.aether.outputs.rollout }}
+
+  is-mandatory:
+    description: '`true` or `false` — whether the release is mandatory.'
+    value: ${{ steps.aether.outputs.is-mandatory }}
+
+  is-disabled:
+    description: '`true` or `false` — whether the release is disabled.'
+    value: ${{ steps.aether.outputs.is-disabled }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Bootstrap placeholder
+      id: aether
+      shell: bash
+      run: |
+        echo "Aether Deploy Action — bootstrap commit, not yet functional."
+        echo "The public API is declared in action.yml. Composite step logic ships in PR #2 (release) and PR #3 (release-react)."
+        echo "status=bootstrap" >> "$GITHUB_OUTPUT"
+        exit 0
