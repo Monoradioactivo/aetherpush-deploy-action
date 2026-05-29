@@ -1,0 +1,67 @@
+name: Manual Test (PR validation only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app-name:
+        description: 'Aether app name in staging tenant'
+        required: true
+      target-binary-version:
+        description: 'Target binary version (semver or wildcard)'
+        required: false
+        default: '*'
+      deployment-name:
+        description: 'Deployment channel'
+        required: false
+        default: 'Staging'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run action against staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create dummy JS bundle
+        shell: bash
+        run: |
+          echo "console.log('aether-deploy-action manual-test smoke at ' + Date.now());" > bundle.js
+          ls -la bundle.js
+
+      - name: Run aether-deploy action
+        id: deploy
+        uses: ./
+        with:
+          access-key: ${{ secrets.AETHER_STAGING_ACCESS_KEY }}
+          app-name: ${{ inputs.app-name }}
+          api-url: 'https://api-staging.aetherpush.com'
+          command: 'release'
+          update-contents-path: 'bundle.js'
+          target-binary-version: ${{ inputs.target-binary-version }}
+          deployment-name: ${{ inputs.deployment-name }}
+          description: 'manual-test smoke from action repo'
+          rollout: '100%'
+
+      - name: Inspect outputs
+        shell: bash
+        run: |
+          echo "status:            ${{ steps.deploy.outputs.status }}"
+          echo "label:             ${{ steps.deploy.outputs.label }}"
+          echo "package-hash:      ${{ steps.deploy.outputs.package-hash }}"
+          echo "size:              ${{ steps.deploy.outputs.size }}"
+          echo "app-version:       ${{ steps.deploy.outputs.app-version }}"
+          echo "released-by:       ${{ steps.deploy.outputs.released-by }}"
+          echo "release-method:    ${{ steps.deploy.outputs.release-method }}"
+          echo "upload-time:       ${{ steps.deploy.outputs.upload-time }}"
+          echo "is-mandatory:      ${{ steps.deploy.outputs.is-mandatory }}"
+          echo "is-disabled:       ${{ steps.deploy.outputs.is-disabled }}"
+          echo "rollout:           ${{ steps.deploy.outputs.rollout }}"
+          echo ""
+          echo "description (heredoc):"
+          cat <<HEREDOC
+          ${{ steps.deploy.outputs.description }}
+          HEREDOC
