@@ -1,19 +1,9 @@
 name: Manual Test (PR validation only)
 
 on:
-  workflow_dispatch:
-    inputs:
-      app-name:
-        description: 'Aether app name in staging tenant'
-        required: true
-      target-binary-version:
-        description: 'Target binary version (semver or wildcard)'
-        required: false
-        default: '*'
-      deployment-name:
-        description: 'Deployment channel'
-        required: false
-        default: 'Staging'
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -37,12 +27,12 @@ jobs:
         uses: ./
         with:
           access-key: ${{ secrets.AETHER_STAGING_ACCESS_KEY }}
-          app-name: ${{ inputs.app-name }}
+          app-name: 'deploy-action-manual-test'
           api-url: 'https://api-staging.aetherpush.com'
           command: 'release'
           update-contents-path: 'bundle.js'
-          target-binary-version: ${{ inputs.target-binary-version }}
-          deployment-name: ${{ inputs.deployment-name }}
+          target-binary-version: '*'
+          deployment-name: 'Staging'
           description: 'manual-test smoke from action repo'
           rollout: '100%'
 
