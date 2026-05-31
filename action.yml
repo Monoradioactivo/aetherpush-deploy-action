@@ -316,8 +316,8 @@ runs:
         emit release-method    "$(jq -r '.releaseMethod // empty' release.json)"
         emit upload-time       "$(jq -r '.uploadTime // empty' release.json)"
         emit rollout           "$(jq -r '.rollout // empty' release.json)"
-        emit is-mandatory      "$(jq -r '.isMandatory // empty' release.json)"
-        emit is-disabled       "$(jq -r '.isDisabled // empty' release.json)"
+        emit is-mandatory      "$(jq -r '.isMandatory // false' release.json)"
+        emit is-disabled       "$(jq -r '.isDisabled // false' release.json)"
 
         echo "status=success" >> "$GITHUB_OUTPUT"
 
