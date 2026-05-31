@@ -1,0 +1,44 @@
+name: Release Please
+
+"on":
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  release-please:
+    name: Release PR / Tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Generate App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Keep release PR up to date with main
+        if: steps.release.outputs.pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          PR_NUMBER=$(echo '${{ steps.release.outputs.pr }}' | jq -r '.number')
+          gh pr update-branch "$PR_NUMBER" || true
