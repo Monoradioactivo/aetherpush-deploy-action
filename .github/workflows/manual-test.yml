@@ -19,7 +19,7 @@ jobs:
       - name: Create dummy JS bundle
         shell: bash
         run: |
-          echo "console.log('aether-deploy-action manual-test smoke at ' + Date.now());" > bundle.js
+          echo "console.log('aether-deploy-action manual-test smoke at $(date +%s%N)');" > bundle.js
           ls -la bundle.js
 
       - name: Run aether-deploy action
@@ -55,3 +55,4 @@ jobs:
           cat <<HEREDOC
           ${{ steps.deploy.outputs.description }}
           HEREDOC
+
