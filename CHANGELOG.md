@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.2.0...v0.3.0) (2026-06-01)
+
+
+### Features
+
+* add working-directory input for monorepo support ([#7](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/7)) ([4218af7](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/4218af7f2233411b8f14dd2ba75bac16560571b1))
+
 ## [0.2.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.1.0...v0.2.0) (2026-06-01)
 
 
