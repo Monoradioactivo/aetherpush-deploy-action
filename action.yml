@@ -245,14 +245,15 @@ runs:
         fi
         aether login "${args[@]}"
 
-    - name: Run aether release
+    - name: Run aether
       id: aether
-      if: inputs.command == 'release'
       shell: bash
       env:
+        COMMAND: ${{ inputs.command }}
         APP_NAME: ${{ inputs.app-name }}
         UPDATE_PATH: ${{ inputs.update-contents-path }}
         TARGET_BIN: ${{ inputs.target-binary-version }}
+        PLATFORM: ${{ inputs.platform }}
         DEPLOYMENT_NAME: ${{ inputs.deployment-name }}
         DESCRIPTION: ${{ inputs.description }}
         MANDATORY: ${{ inputs.mandatory }}
@@ -261,31 +262,78 @@ runs:
         NO_DUP: ${{ inputs.no-duplicate-release-error }}
         FORCE: ${{ inputs.force }}
         CI_METADATA: ${{ inputs.ci-metadata }}
+        BUNDLE_NAME: ${{ inputs.bundle-name }}
+        ENTRY_FILE: ${{ inputs.entry-file }}
+        GRADLE_FILE: ${{ inputs.gradle-file }}
+        PLIST_FILE: ${{ inputs.plist-file }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+        SOURCEMAP_OUTPUT: ${{ inputs.sourcemap-output }}
+        PRIVATE_KEY_PATH: ${{ inputs.private-key-path }}
+        USE_HERMES: ${{ inputs.use-hermes }}
+        DEVELOPMENT: ${{ inputs.development }}
       run: |
         set -euo pipefail
 
         echo "status=failure" >> "$GITHUB_OUTPUT"
 
-        if [ -z "$UPDATE_PATH" ]; then
-          echo "::error::Input 'update-contents-path' is required when command is 'release'"
-          exit 1
-        fi
-        if [ -z "$TARGET_BIN" ]; then
-          echo "::error::Input 'target-binary-version' is required when command is 'release'"
-          exit 1
-        fi
-
-        args=("$APP_NAME" "$UPDATE_PATH" "$TARGET_BIN")
-        args+=(-d "$DEPLOYMENT_NAME" -r "$ROLLOUT")
-        [ -n "$DESCRIPTION" ] && args+=(--description "$DESCRIPTION")
-        [ "$MANDATORY" = "true" ] && args+=(-m)
-        [ "$DISABLED" = "true" ] && args+=(-x)
-        [ "$NO_DUP" = "true" ] && args+=(--noDuplicateReleaseError)
-        [ "$FORCE" = "true" ] && args+=(--force)
-        [ "$CI_METADATA" = "false" ] && args+=(--no-ci-metadata)
-        args+=(--json)
-
-        aether release "${args[@]}" > release.json
+        case "$COMMAND" in
+          release)
+            if [ -z "$UPDATE_PATH" ]; then
+              echo "::error::Input 'update-contents-path' is required when command is 'release'"
+              exit 1
+            fi
+            if [ -z "$TARGET_BIN" ]; then
+              echo "::error::Input 'target-binary-version' is required when command is 'release'"
+              exit 1
+            fi
+            args=("$APP_NAME" "$UPDATE_PATH" "$TARGET_BIN")
+            args+=(-d "$DEPLOYMENT_NAME" -r "$ROLLOUT")
+            [ -n "$DESCRIPTION" ] && args+=(--description "$DESCRIPTION")
+            [ "$MANDATORY" = "true" ] && args+=(-m)
+            [ "$DISABLED" = "true" ] && args+=(-x)
+            [ "$NO_DUP" = "true" ] && args+=(--noDuplicateReleaseError)
+            [ "$FORCE" = "true" ] && args+=(--force)
+            [ "$CI_METADATA" = "false" ] && args+=(--no-ci-metadata)
+            args+=(--json)
+            echo "Running: aether release ${args[*]}"
+            aether release "${args[@]}" > release.json
+            ;;
+          release-react)
+            if [ -z "$PLATFORM" ]; then
+              echo "::error::Input 'platform' is required when command is 'release-react'"
+              exit 1
+            fi
+            if [ "$PLATFORM" != "ios" ] && [ "$PLATFORM" != "android" ]; then
+              echo "::error::Input 'platform' must be 'ios' or 'android', got '$PLATFORM'"
+              exit 1
+            fi
+            args=("$APP_NAME" "$PLATFORM")
+            args+=(-d "$DEPLOYMENT_NAME" -r "$ROLLOUT")
+            [ -n "$DESCRIPTION" ] && args+=(--description "$DESCRIPTION")
+            [ -n "$TARGET_BIN" ] && args+=(-t "$TARGET_BIN")
+            [ -n "$BUNDLE_NAME" ] && args+=(-b "$BUNDLE_NAME")
+            [ -n "$ENTRY_FILE" ] && args+=(-e "$ENTRY_FILE")
+            [ -n "$GRADLE_FILE" ] && args+=(-g "$GRADLE_FILE")
+            [ -n "$PLIST_FILE" ] && args+=(-p "$PLIST_FILE")
+            [ -n "$OUTPUT_DIR" ] && args+=(-o "$OUTPUT_DIR")
+            [ -n "$SOURCEMAP_OUTPUT" ] && args+=(-s "$SOURCEMAP_OUTPUT")
+            [ -n "$PRIVATE_KEY_PATH" ] && args+=(-k "$PRIVATE_KEY_PATH")
+            [ "$USE_HERMES" = "true" ] && args+=(--useHermes)
+            [ "$DEVELOPMENT" = "true" ] && args+=(--development)
+            [ "$MANDATORY" = "true" ] && args+=(-m)
+            [ "$DISABLED" = "true" ] && args+=(-x)
+            [ "$NO_DUP" = "true" ] && args+=(--noDuplicateReleaseError)
+            [ "$FORCE" = "true" ] && args+=(--force)
+            [ "$CI_METADATA" = "false" ] && args+=(--no-ci-metadata)
+            args+=(--json)
+            echo "Running: aether release-react ${args[*]}"
+            aether release-react "${args[@]}" > release.json
+            ;;
+          *)
+            echo "::error::Invalid command '$COMMAND'. Must be 'release' or 'release-react'."
+            exit 1
+            ;;
+        esac
 
         if ! jq -e . release.json > /dev/null 2>&1; then
           echo "::error::CLI returned exit 0 but emitted invalid JSON. This indicates a CLI bug — please report."
@@ -320,10 +368,3 @@ runs:
         emit is-disabled       "$(jq -r '.isDisabled // false' release.json)"
 
         echo "status=success" >> "$GITHUB_OUTPUT"
-
-    - name: release-react placeholder
-      if: inputs.command == 'release-react'
-      shell: bash
-      run: |
-        echo "::error::command 'release-react' is not yet supported by this action. It ships in a future release. Use command: release for now."
-        exit 1
