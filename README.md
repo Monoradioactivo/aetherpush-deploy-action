@@ -58,7 +58,7 @@ Use an Aether **API key**, not a session access key.
 Create one with:
 
 ```sh
-aether api-key add --name "github-actions-<repo>" --scope deploy
+aether api-key add github-actions-<repo> --scopes deploy
 ```
 
 The CLI prints a value with the prefix `aether_sk_live_`. Store it as a
