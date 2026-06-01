@@ -37,6 +37,15 @@ inputs:
     required: false
     default: ''
 
+  working-directory:
+    description: |
+      Directory to run the CLI from, relative to the repository root. Useful for
+      monorepos where the React Native project lives in a subdirectory
+      (e.g. `apps/mobile`). Relative paths such as `update-contents-path` are
+      resolved from here. Defaults to the repository root.
+    required: false
+    default: '.'
+
   deployment-name:
     description: 'Aether deployment channel to release into.'
     required: false
@@ -250,6 +259,7 @@ runs:
       shell: bash
       env:
         COMMAND: ${{ inputs.command }}
+        WORKING_DIR: ${{ inputs.working-directory }}
         APP_NAME: ${{ inputs.app-name }}
         UPDATE_PATH: ${{ inputs.update-contents-path }}
         TARGET_BIN: ${{ inputs.target-binary-version }}
@@ -275,6 +285,8 @@ runs:
         set -euo pipefail
 
         echo "status=failure" >> "$GITHUB_OUTPUT"
+
+        cd "$WORKING_DIR" || { echo "::error::working-directory '$WORKING_DIR' does not exist."; exit 1; }
 
         case "$COMMAND" in
           release)
