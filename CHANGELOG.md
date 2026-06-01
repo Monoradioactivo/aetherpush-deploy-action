@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.1.0...v0.2.0) (2026-06-01)
+
+
+### Features
+
+* support release-react command ([#5](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/5)) ([11d047d](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/11d047d588532dbefa2e869acb242a801cd01d40))
+
 ## 0.1.0 (2026-06-01)
 
 
