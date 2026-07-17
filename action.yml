@@ -33,7 +33,7 @@ inputs:
   api-url:
     description: |
       Override the Aether server URL. Leave empty for the CLI built-in default (production).
-      Set to `https://api-staging.aetherpush.com` to deploy against staging.
+      Set to a custom Aether server URL (e.g. a staging environment) to override.
     required: false
     default: ''
 
