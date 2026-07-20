@@ -228,13 +228,13 @@ runs:
 
     - name: Install Aether CLI
       shell: bash
-      run: npm install -g @aetherpush/cli@0.3.2
+      run: npm install -g @aetherpush/cli@0.3.4
 
     - name: Verify CLI version matches pin
       shell: bash
       run: |
         set -euo pipefail
-        EXPECTED="0.3.2"
+        EXPECTED="0.3.4"
         INSTALLED=$(aether --version 2>/dev/null | tr -d ' \r\n')
         if [ "$INSTALLED" != "$EXPECTED" ]; then
           echo "::error::Installed CLI version '$INSTALLED' does not match expected '$EXPECTED'. Check npm registry and cache."
