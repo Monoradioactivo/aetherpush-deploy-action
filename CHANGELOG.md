@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.3.1...v0.3.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* pin the CLI to 0.3.4 ([#16](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/16)) ([67051f3](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/67051f3abb9c21de9e60079789a6e37f9da2cd32))
+
 ## [0.3.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.3.0...v0.3.1) (2026-07-07)
 
 
