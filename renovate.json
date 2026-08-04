@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["custom.regex"],
+  "branchPrefix": "chore/renovate-",
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^action\\.yml$"],
+      "matchStrings": [
+        "@aetherpush/cli@(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "EXPECTED=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "@aetherpush/cli",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^README\\.md$"],
+      "matchStrings": [
+        "aetherpush-deploy-action@v(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "Monoradioactivo/aetherpush-deploy-action",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": ["@aetherpush/cli"],
+      "semanticCommitType": "fix",
+      "automerge": true,
+      "automergeStrategy": "squash"
+    },
+    {
+      "matchDepNames": ["Monoradioactivo/aetherpush-deploy-action"],
+      "semanticCommitType": "docs",
+      "automerge": true,
+      "automergeStrategy": "squash"
+    }
+  ]
+}
