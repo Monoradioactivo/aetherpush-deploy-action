@@ -1,12 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabledManagers": ["custom.regex"],
+  "enabledManagers": [
+    "custom.regex",
+    "github-actions"
+  ],
   "branchPrefix": "chore/renovate-",
   "semanticCommits": "enabled",
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^action\\.yml$"],
+      "fileMatch": [
+        "^action\\.yml$"
+      ],
       "matchStrings": [
         "@aetherpush/cli@(?<currentValue>\\d+\\.\\d+\\.\\d+)",
         "EXPECTED=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
@@ -16,7 +21,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["^README\\.md$"],
+      "fileMatch": [
+        "^README\\.md$"
+      ],
       "matchStrings": [
         "aetherpush-deploy-action@v(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
@@ -27,16 +34,47 @@
   ],
   "packageRules": [
     {
-      "matchDepNames": ["@aetherpush/cli"],
+      "matchDepNames": [
+        "@aetherpush/cli"
+      ],
       "semanticCommitType": "fix",
       "automerge": true,
       "automergeStrategy": "squash"
     },
     {
-      "matchDepNames": ["Monoradioactivo/aetherpush-deploy-action"],
+      "matchDepNames": [
+        "Monoradioactivo/aetherpush-deploy-action"
+      ],
       "semanticCommitType": "docs",
       "automerge": true,
       "automergeStrategy": "squash"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "github actions (non-major)"
     }
-  ]
+  ],
+  "timezone": "America/Mexico_City",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 3,
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboard": true
 }
