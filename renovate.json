@@ -64,9 +64,11 @@
       ],
       "matchUpdateTypes": [
         "minor",
-        "patch"
+        "patch",
+        "pin",
+        "digest"
       ],
-      "groupName": "github actions (non-major)"
+      "groupName": "weekly updates"
     }
   ],
   "timezone": "America/Mexico_City",
