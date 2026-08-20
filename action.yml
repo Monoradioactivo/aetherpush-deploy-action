@@ -10,10 +10,10 @@ inputs:
 
   access-key:
     description: |
-      Aether API key for authentication. Generate one via `aether api-key add --scope deploy`
-      or in the Aether dashboard, then store as a GitHub secret. Do not use session access
-      keys created with `aether access-key add` — they invalidate when the owner resets their
-      password and have a fixed 60-day expiration.
+      Aether API key for authentication. Create one in the Aether dashboard under
+      API Keys, scoped to deploy, then store it as a GitHub secret. Do not use session
+      access keys created with `aether access-key add` — they invalidate when the owner
+      resets their password and have a fixed 60-day expiration.
     required: true
 
   app-name:
