@@ -44,11 +44,11 @@ jobs:
 
 Use an Aether API key, not a session access key.
 
-```sh
-aether api-key add github-actions-<repo> --scopes deploy
-```
+Create it in the Aether dashboard, under **API Keys**, scoped to `deploy`. Name it
+after the repository, such as `github-actions-<repo>`, so you can revoke one pipeline's
+key without disturbing the others.
 
-The CLI prints a value with the prefix `aether_sk_live_`. Store it as a GitHub
+The dashboard shows a value with the prefix `aether_sk_live_` exactly once. Store it as a GitHub
 repository secret named `AETHER_ACCESS_KEY`. Session keys from `aether
 access-key add` invalidate on password reset and expire after 60 days, so they
 don't belong in CI.
