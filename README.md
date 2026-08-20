@@ -49,9 +49,10 @@ after the repository, such as `github-actions-<repo>`, so you can revoke one pip
 key without disturbing the others.
 
 The dashboard shows a value with the prefix `aether_sk_live_` exactly once. Store it as a GitHub
-repository secret named `AETHER_ACCESS_KEY`. Session keys from `aether
-access-key add` invalidate on password reset and expire after 60 days, so they
-don't belong in CI.
+repository secret named `AETHER_ACCESS_KEY`. Session access keys (created in
+the dashboard under Account → CLI access keys; `aether access-key add` no longer
+works from the terminal) invalidate on password reset and expire after 60 days,
+so they don't belong in CI.
 
 ## Inputs
 

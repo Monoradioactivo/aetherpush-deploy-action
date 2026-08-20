@@ -12,8 +12,8 @@ inputs:
     description: |
       Aether API key for authentication. Create one in the Aether dashboard under
       API Keys, scoped to deploy, then store it as a GitHub secret. Do not use session
-      access keys created with `aether access-key add` — they invalidate when the owner
-      resets their password and have a fixed 60-day expiration.
+      access keys (created in the dashboard under Account → CLI access keys) — they
+      invalidate when the owner resets their password and have a fixed 60-day expiration.
     required: true
 
   app-name:
