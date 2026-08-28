@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.3.3...v0.4.0) (2026-08-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* the blob-url and manifest-blob-url outputs are removed, and there is no replacement output. The presigned URL is deliberately no longer published. Workflows that referenced either output need updating.
+
+### Features
+
+* stop publishing signed bundle URLs as step outputs ([#27](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/27)) ([7ca1e8e](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/7ca1e8e49cc24776ade21a8de2b59e34115385b9))
+
 ## [0.3.3](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.3.2...v0.3.3) (2026-07-26)
 
 
