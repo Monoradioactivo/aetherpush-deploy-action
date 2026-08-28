@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.0...v0.4.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* **action:** treat a skipped duplicate as success ([#30](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/30)) ([657d269](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/657d269d810e17add1d7e5a1fc02c12de2b621e7))
+
 ## [0.4.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.3.3...v0.4.0) (2026-08-28)
 
 
