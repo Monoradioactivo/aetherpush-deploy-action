@@ -72,7 +72,10 @@ inputs:
     default: 'false'
 
   no-duplicate-release-error:
-    description: 'When set to `true`, an identical package makes the CLI warn instead of error. The step still fails, because the CLI then prints no release object to map.'
+    description: |
+      When set to `true`, a 409 from the server makes the CLI warn instead of
+      error and the step succeeds with empty release outputs. The CLI warning
+      names the reason (identical package, or an unfinished rollout).
     required: false
     default: 'false'
 
@@ -156,7 +159,9 @@ inputs:
 outputs:
 
   status:
-    description: '`success` if the release completed and the CLI emitted a valid JSON payload; `failure` otherwise.'
+    description: |
+      `success` if the release completed, or if `no-duplicate-release-error` is
+      `true` and the CLI printed no JSON (a swallowed 409). `failure` otherwise.
     value: ${{ steps.aether.outputs.status }}
 
   label:
@@ -184,7 +189,9 @@ outputs:
     value: ${{ steps.aether.outputs.released-by }}
 
   release-method:
-    description: 'How the release was produced. One of: `Upload`, `Promote`, `Rollback`.'
+    description: |
+      How the release was produced. One of: `Upload`, `Promote`, `Rollback`.
+      Empty when the CLI printed no release object.
     value: ${{ steps.aether.outputs.release-method }}
 
   upload-time:
@@ -192,15 +199,21 @@ outputs:
     value: ${{ steps.aether.outputs.upload-time }}
 
   rollout:
-    description: 'Rollout percentage (e.g. `25`). `100` once the rollout is complete; never empty.'
+    description: |
+      Rollout percentage (e.g. `25`). `100` once the rollout is complete. Empty
+      when the CLI printed no release object.
     value: ${{ steps.aether.outputs.rollout }}
 
   is-mandatory:
-    description: '`true` or `false` — whether the release is mandatory.'
+    description: |
+      `true` or `false` when a release object was mapped. Empty when the CLI
+      printed none.
     value: ${{ steps.aether.outputs.is-mandatory }}
 
   is-disabled:
-    description: '`true` or `false` — whether the release is disabled.'
+    description: |
+      `true` or `false` when a release object was mapped. Empty when the CLI
+      printed none.
     value: ${{ steps.aether.outputs.is-disabled }}
 
 runs:
@@ -350,11 +363,12 @@ runs:
         if ! jq -e 'type == "object" and has("label")' release.json > /dev/null 2>&1; then
           # A skipped release prints nothing to stdout, so JSON of the wrong shape is never one.
           if [ "$NO_DUP" = "true" ] && ! jq -e . release.json > /dev/null 2>&1; then
-            echo "::error::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
+            echo "::warning::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
             echo "The CLI warning above gives the reason. Check the deployment history; if it holds no such release, this is a CLI bug worth reporting."
-          else
-            echo "::error::CLI exited 0 without printing a release object. This indicates a CLI bug — please report."
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "::error::CLI exited 0 without printing a release object. This indicates a CLI bug — please report."
           exit 1
         fi
 

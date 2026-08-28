@@ -68,7 +68,7 @@ so they don't belong in CI.
 | `rollout` | no | `100%` | Percentage of clients. |
 | `mandatory` | no | `false` | Force install on clients. |
 | `disabled` | no | `false` | Upload in a disabled state. |
-| `no-duplicate-release-error` | no | `false` | The CLI warns instead of erroring on an identical release. The step still fails. |
+| `no-duplicate-release-error` | no | `false` | The CLI warns on a 409 (identical package or unfinished rollout) and the step succeeds with empty release outputs. |
 | `ci-metadata` | no | `true` | Append a `[ci=…]` tag to the description. |
 | `force` | no | `false` | Skip destructive-action prompts. |
 | `api-url` | no | | Override the server URL (e.g. staging). |
@@ -102,18 +102,25 @@ so they don't belong in CI.
 
 | Output | Description |
 |---|---|
-| `status` | `success` or `failure`. |
-| `label` | Release label (e.g. `v4`). |
-| `package-hash` | SHA-256 of the package. |
-| `size` | Package size in bytes. |
-| `app-version` | Targeted binary version. |
-| `description` | Final description, with `[ci=…]` appended when enabled. |
+| `status` | `success` or `failure`. `success` includes a swallowed 409 when `no-duplicate-release-error` is true. |
+| `label` | Release label (e.g. `v4`). Empty when the CLI printed no release object. |
+| `package-hash` | SHA-256 of the package. Empty when the CLI printed no release object. |
+| `size` | Package size in bytes. Empty when the CLI printed no release object. |
+| `app-version` | Targeted binary version. Empty when the CLI printed no release object. |
+| `description` | Final description, with `[ci=…]` appended when enabled. Empty when the CLI printed no release object. |
 | `released-by` | Always empty for releases made by this action. |
-| `release-method` | `Upload`, `Promote`, or `Rollback`. |
-| `upload-time` | Unix timestamp in milliseconds. |
-| `rollout` | Rollout percentage. `100` once complete; never empty. |
-| `is-mandatory` | `true` or `false`. |
-| `is-disabled` | `true` or `false`. |
+| `release-method` | `Upload`, `Promote`, or `Rollback`. Empty when the CLI printed no release object. |
+| `upload-time` | Unix timestamp in milliseconds. Empty when the CLI printed no release object. |
+| `rollout` | Rollout percentage. `100` once complete. Empty when the CLI printed no release object. |
+| `is-mandatory` | `true` or `false` when a release was mapped; empty otherwise. |
+| `is-disabled` | `true` or `false` when a release was mapped; empty otherwise. |
+
+When `no-duplicate-release-error` is true and the CLI prints no JSON, `status` is
+`success` and the metadata outputs stay empty. Put `id: release` on the action
+step, then gate later steps with `if: steps.release.outputs.label != ''`. A job
+that uses `needs:` must pass `label` through that job's `outputs` map; `steps`
+is not visible across jobs. The CLI warning in the log names the 409 (identical
+package, or an unfinished rollout).
 
 The action has no output for the bundle download URL. The CLI returns a presigned URL
 that stays valid for seven days, and there is no way to revoke a single link. A step
