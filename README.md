@@ -68,7 +68,7 @@ so they don't belong in CI.
 | `rollout` | no | `100%` | Percentage of clients. |
 | `mandatory` | no | `false` | Force install on clients. |
 | `disabled` | no | `false` | Upload in a disabled state. |
-| `no-duplicate-release-error` | no | `false` | Warn instead of error on an identical release. |
+| `no-duplicate-release-error` | no | `false` | The CLI warns instead of erroring on an identical release. The step still fails. |
 | `ci-metadata` | no | `true` | Append a `[ci=…]` tag to the description. |
 | `force` | no | `false` | Skip destructive-action prompts. |
 | `api-url` | no | | Override the server URL (e.g. staging). |
@@ -107,15 +107,26 @@ so they don't belong in CI.
 | `package-hash` | SHA-256 of the package. |
 | `size` | Package size in bytes. |
 | `app-version` | Targeted binary version. |
-| `blob-url` | Signed download URL (time-limited). |
-| `manifest-blob-url` | Signed manifest URL. |
 | `description` | Final description, with `[ci=…]` appended when enabled. |
-| `released-by` | Releaser email (empty when using an API key). |
+| `released-by` | Always empty for releases made by this action. |
 | `release-method` | `Upload`, `Promote`, or `Rollback`. |
 | `upload-time` | Unix timestamp in milliseconds. |
-| `rollout` | Rollout percentage; empty when the rollout is complete. |
+| `rollout` | Rollout percentage. `100` once complete; never empty. |
 | `is-mandatory` | `true` or `false`. |
 | `is-disabled` | `true` or `false`. |
+
+The action has no output for the bundle download URL. The CLI returns a presigned URL
+that stays valid for seven days, and there is no way to revoke a single link. A step
+output goes further than the workflow that produced it: the runner writes it to the job
+log whenever step debug logging is on, and any job that reads the output can print it
+again. The bundle is not secret content, since the same file is served to every client
+holding the deployment key, but a release that is disabled or still rolling out can be
+fetched through the URL before it is reachable through the app.
+
+The action writes `release.json` in the job workspace to map the CLI `--json` object
+onto the outputs above, then deletes both URL fields from the file. A later step in the
+same job reads release metadata rather than download links. The action does not upload
+that file, and neither should you.
 
 ## Examples
 
