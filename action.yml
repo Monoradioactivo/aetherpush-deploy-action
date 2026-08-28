@@ -72,7 +72,7 @@ inputs:
     default: 'false'
 
   no-duplicate-release-error:
-    description: 'When set to `true`, releasing an identical package produces a warning instead of an error.'
+    description: 'When set to `true`, an identical package makes the CLI warn instead of error. The step still fails, because the CLI then prints no release object to map.'
     required: false
     default: 'false'
 
@@ -175,20 +175,12 @@ outputs:
     description: 'Binary app version (or range) the release targets.'
     value: ${{ steps.aether.outputs.app-version }}
 
-  blob-url:
-    description: 'Signed URL to download the package bundle. Time-limited — not a CDN URL.'
-    value: ${{ steps.aether.outputs.blob-url }}
-
-  manifest-blob-url:
-    description: 'Signed URL to the package manifest (file hash map).'
-    value: ${{ steps.aether.outputs.manifest-blob-url }}
-
   description:
     description: 'Final release description as stored on the server, with the `[ci=...]` bracket appended when applicable.'
     value: ${{ steps.aether.outputs.description }}
 
   released-by:
-    description: 'Email of the account that owns the API key used to release.'
+    description: 'Always empty for releases made by this action.'
     value: ${{ steps.aether.outputs.released-by }}
 
   release-method:
@@ -200,7 +192,7 @@ outputs:
     value: ${{ steps.aether.outputs.upload-time }}
 
   rollout:
-    description: 'Rollout percentage as a string (e.g. `25`). Empty when the rollout is complete.'
+    description: 'Rollout percentage (e.g. `25`). `100` once the rollout is complete; never empty.'
     value: ${{ steps.aether.outputs.rollout }}
 
   is-mandatory:
@@ -286,6 +278,9 @@ runs:
 
         echo "status=failure" >> "$GITHUB_OUTPUT"
 
+        # The delimiter must be unguessable, or a crafted release description closes the heredoc and writes outputs of its own.
+        eof_marker="AETHER_EOF_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+
         cd "$WORKING_DIR" || { echo "::error::working-directory '$WORKING_DIR' does not exist."; exit 1; }
 
         case "$COMMAND" in
@@ -347,18 +342,34 @@ runs:
             ;;
         esac
 
-        if ! jq -e . release.json > /dev/null 2>&1; then
-          echo "::error::CLI returned exit 0 but emitted invalid JSON. This indicates a CLI bug — please report."
+        # The CLI prints the package object on the last stdout line; earlier lines are progress.
+        awk 'NF { line = $0 } END { print line }' release.json > release.json.tmp
+        mv release.json.tmp release.json
+
+        # A signed run leaves the sign log line here, so emptiness cannot classify this; only the shape can.
+        if ! jq -e 'type == "object" and has("label")' release.json > /dev/null 2>&1; then
+          # A skipped release prints nothing to stdout, so JSON of the wrong shape is never one.
+          if [ "$NO_DUP" = "true" ] && ! jq -e . release.json > /dev/null 2>&1; then
+            echo "::error::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
+            echo "The CLI warning above gives the reason. Check the deployment history; if it holds no such release, this is a CLI bug worth reporting."
+          else
+            echo "::error::CLI exited 0 without printing a release object. This indicates a CLI bug — please report."
+          fi
           exit 1
         fi
+
+        # Nothing below reads the signed download URLs, and this file stays in the user's workspace.
+        # -c keeps the object on one line, which is the shape the CLI documents and the CI templates parse.
+        jq -c 'del(.blobUrl, .manifestBlobUrl)' release.json > release.json.tmp
+        mv release.json.tmp release.json
 
         emit() {
           local key="$1" val="$2"
           if [[ "$val" == *$'\n'* ]]; then
             {
-              echo "${key}<<__AETHER_EOF__"
+              echo "${key}<<${eof_marker}"
               echo "$val"
-              echo "__AETHER_EOF__"
+              echo "${eof_marker}"
             } >> "$GITHUB_OUTPUT"
           else
             echo "${key}=${val}" >> "$GITHUB_OUTPUT"
@@ -369,8 +380,6 @@ runs:
         emit package-hash      "$(jq -r '.packageHash // empty' release.json)"
         emit size              "$(jq -r '.size // empty' release.json)"
         emit app-version       "$(jq -r '.appVersion // empty' release.json)"
-        emit blob-url          "$(jq -r '.blobUrl // empty' release.json)"
-        emit manifest-blob-url "$(jq -r '.manifestBlobUrl // empty' release.json)"
         emit description       "$(jq -r '.description // empty' release.json)"
         emit released-by       "$(jq -r '.releasedBy // empty' release.json)"
         emit release-method    "$(jq -r '.releaseMethod // empty' release.json)"
