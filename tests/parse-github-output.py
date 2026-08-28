@@ -5,6 +5,7 @@ from pathlib import Path
 
 EXPECTED = {
     "failure": {"status": "failure"},
+    "skip": {"status": "success"},
     "signed": {
         "app-version": ">=1.0.0 <2.0.0",
         "description": "line one\n__AETHER_EOF__\ninjected=yes\nx<<E",
