@@ -76,11 +76,12 @@ mv release.json.tmp release.json
 if ! jq -e 'type == "object" and has("label")' release.json > /dev/null 2>&1; then
   # A skipped release prints nothing to stdout, so JSON of the wrong shape is never one.
   if [ "$NO_DUP" = "true" ] && ! jq -e . release.json > /dev/null 2>&1; then
-    echo "::error::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
+    echo "::warning::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
     echo "The CLI warning above gives the reason. Check the deployment history; if it holds no such release, this is a CLI bug worth reporting."
-  else
-    echo "::error::CLI exited 0 without printing a release object. This indicates a CLI bug — please report."
+    echo "status=success" >> "$GITHUB_OUTPUT"
+    exit 0
   fi
+  echo "::error::CLI exited 0 without printing a release object. This indicates a CLI bug — please report."
   exit 1
 fi
 

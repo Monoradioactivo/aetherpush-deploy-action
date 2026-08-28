@@ -134,7 +134,7 @@ run_case() {
   "$python_bin" "$parser" "$output_file" "$expected_outputs"
   grep -Fq "$expected_diagnostic" "$log_file" || fail "$name diagnostic"
 
-  if [ "$expected_exit" = "0" ]; then
+  if [ "$expected_exit" = "0" ] && [ "$expected_outputs" != "skip" ]; then
     [ -f "$working_dir/release.json" ] || fail "$name release.json missing"
     assert_equal "1" "$(wc -l < "$working_dir/release.json" | tr -d ' ')" "$name release.json lines"
     jq -e 'has("label") and (has("blobUrl") | not) and (has("manifestBlobUrl") | not)' "$working_dir/release.json" > /dev/null
@@ -173,7 +173,7 @@ arg=--no-ci-metadata
 arg=--json'
 
 run_case empty empty.stdout 1 failure 'This indicates a CLI bug'
-NO_DUP=true run_case empty-duplicate empty.stdout 1 failure "With 'no-duplicate-release-error' on"
+NO_DUP=true run_case empty-duplicate empty.stdout 0 skip "::warning::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on"
 run_case invalid invalid.stdout 1 failure 'This indicates a CLI bug'
 NO_DUP=true run_case wrong-shape wrong-shape.stdout 1 failure 'This indicates a CLI bug'
 
