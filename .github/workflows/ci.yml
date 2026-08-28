@@ -10,10 +10,36 @@ permissions:
   contents: read
 
 jobs:
+  step-script-tests:
+    name: Step script tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run step script tests
+        shell: bash
+        env:
+          AETHER_ACTION_PATH: ${{ github.workspace }}
+        run: bash "$AETHER_ACTION_PATH/tests/run-aether.test.sh"
+
   yaml-lint:
     name: YAML lint
+    needs: step-script-tests
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Require step script tests
+        if: ${{ needs.step-script-tests.result != 'success' }}
+        run: exit 1
+
       - name: Checkout
         uses: actions/checkout@v4
 

@@ -1,0 +1,3 @@
+Signing package contents
+Wrote signature
+{"label":"v42","packageHash":"abc123","size":2048,"appVersion":">=1.0.0 <2.0.0","description":"line one\n__AETHER_EOF__\ninjected=yes\nx<<E","releasedBy":null,"releaseMethod":"Upload","uploadTime":1700000000000,"rollout":25,"isMandatory":true,"isDisabled":false,"blobUrl":"https://example.invalid/blob","manifestBlobUrl":"https://example.invalid/manifest"}
