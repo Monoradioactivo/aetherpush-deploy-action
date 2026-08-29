@@ -9,8 +9,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^action\\.yml$"
+      "managerFilePatterns": [
+        "/^action\\.yml$/"
       ],
       "matchStrings": [
         "@aetherpush/cli@(?<currentValue>\\d+\\.\\d+\\.\\d+)",
@@ -21,8 +21,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^README\\.md$"
+      "managerFilePatterns": [
+        "/^README\\.md$/"
       ],
       "matchStrings": [
         "aetherpush-deploy-action@v(?<currentValue>\\d+\\.\\d+\\.\\d+)"
@@ -30,16 +30,32 @@
       "depNameTemplate": "Monoradioactivo/aetherpush-deploy-action",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^tests\\/fixtures\\/CLI_VERSION$/"
+      ],
+      "matchStrings": [
+        "(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "@aetherpush/cli",
+      "datasourceTemplate": "npm"
     }
   ],
   "packageRules": [
     {
+      "description": "Update the bundled CLI daily after its three-day release cooldown",
       "matchDepNames": [
         "@aetherpush/cli"
       ],
       "semanticCommitType": "fix",
       "automerge": true,
-      "automergeStrategy": "squash"
+      "automergeStrategy": "squash",
+      "schedule": [
+        "* 0-5 * * *"
+      ],
+      "prPriority": 10
     },
     {
       "matchDepNames": [
@@ -50,13 +66,10 @@
       "automergeStrategy": "squash"
     },
     {
-      "matchManagers": [
-        "github-actions"
+      "matchDepNames": [
+        "actions/setup-node"
       ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "dependencyDashboardApproval": true
+      "semanticCommitType": "fix"
     },
     {
       "matchManagers": [
@@ -78,5 +91,6 @@
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 3,
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboard": true
+  "dependencyDashboard": true,
+  "configMigration": true
 }
