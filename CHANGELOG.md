@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.1...v0.4.2) (2026-08-29)
+
+
+### Bug Fixes
+
+* **deps:** keep the bundled CLI current ([#32](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/32)) ([04e70d8](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/04e70d899fba15fa9b87e92991cacd562f2b205e))
+
 ## [0.4.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.0...v0.4.1) (2026-08-28)
 
 
