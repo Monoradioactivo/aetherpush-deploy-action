@@ -4,8 +4,14 @@ set -euo pipefail
 
 echo "status=failure" >> "$GITHUB_OUTPUT"
 
-# The delimiter must be unguessable, or a crafted release description closes the heredoc and writes outputs of its own.
 eof_marker="AETHER_EOF_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+
+if [ -z "${RUNNER_TEMP:-}" ] || [ ! -d "$RUNNER_TEMP" ]; then
+  echo "::error::RUNNER_TEMP is unset or not a directory. This action must run on a GitHub Actions runner."
+  exit 1
+fi
+RELEASE_JSON="$RUNNER_TEMP/aether-release.json"
+RELEASE_JSON_TMP="$RELEASE_JSON.tmp"
 
 cd "$WORKING_DIR" || { echo "::error::working-directory '$WORKING_DIR' does not exist."; exit 1; }
 
@@ -29,7 +35,7 @@ case "$COMMAND" in
     [ "$CI_METADATA" = "false" ] && args+=(--no-ci-metadata)
     args+=(--json)
     echo "Running: aether release ${args[*]}"
-    aether release "${args[@]}" > release.json
+    aether release "${args[@]}" > "$RELEASE_JSON"
     ;;
   release-react)
     if [ -z "$PLATFORM" ]; then
@@ -60,7 +66,7 @@ case "$COMMAND" in
     [ "$CI_METADATA" = "false" ] && args+=(--no-ci-metadata)
     args+=(--json)
     echo "Running: aether release-react ${args[*]}"
-    aether release-react "${args[@]}" > release.json
+    aether release-react "${args[@]}" > "$RELEASE_JSON"
     ;;
   *)
     echo "::error::Invalid command '$COMMAND'. Must be 'release' or 'release-react'."
@@ -68,14 +74,11 @@ case "$COMMAND" in
     ;;
 esac
 
-# The CLI prints the package object on the last stdout line; earlier lines are progress.
-awk 'NF { line = $0 } END { print line }' release.json > release.json.tmp
-mv release.json.tmp release.json
+awk 'NF { line = $0 } END { print line }' "$RELEASE_JSON" > "$RELEASE_JSON_TMP"
+mv "$RELEASE_JSON_TMP" "$RELEASE_JSON"
 
-# A signed run leaves the sign log line here, so emptiness cannot classify this; only the shape can.
-if ! jq -e 'type == "object" and has("label")' release.json > /dev/null 2>&1; then
-  # A skipped release prints nothing to stdout, so JSON of the wrong shape is never one.
-  if [ "$NO_DUP" = "true" ] && ! jq -e . release.json > /dev/null 2>&1; then
+if ! jq -e 'type == "object" and has("label")' "$RELEASE_JSON" > /dev/null 2>&1; then
+  if [ "$NO_DUP" = "true" ] && ! jq -e . "$RELEASE_JSON" > /dev/null 2>&1; then
     echo "::warning::CLI exited 0 without printing a release object. With 'no-duplicate-release-error' on, a skipped release looks like this."
     echo "The CLI warning above gives the reason. Check the deployment history; if it holds no such release, this is a CLI bug worth reporting."
     echo "status=success" >> "$GITHUB_OUTPUT"
@@ -85,10 +88,8 @@ if ! jq -e 'type == "object" and has("label")' release.json > /dev/null 2>&1; th
   exit 1
 fi
 
-# Nothing below reads the signed download URLs, and this file stays in the user's workspace.
-# -c keeps the object on one line, which is the shape the CLI documents and the CI templates parse.
-jq -c 'del(.blobUrl, .manifestBlobUrl)' release.json > release.json.tmp
-mv release.json.tmp release.json
+jq -c 'del(.blobUrl, .manifestBlobUrl)' "$RELEASE_JSON" > "$RELEASE_JSON_TMP"
+mv "$RELEASE_JSON_TMP" "$RELEASE_JSON"
 
 emit() {
   local key="$1" val="$2"
@@ -103,16 +104,16 @@ emit() {
   fi
 }
 
-emit label             "$(jq -r '.label // empty' release.json)"
-emit package-hash      "$(jq -r '.packageHash // empty' release.json)"
-emit size              "$(jq -r '.size // empty' release.json)"
-emit app-version       "$(jq -r '.appVersion // empty' release.json)"
-emit description       "$(jq -r '.description // empty' release.json)"
-emit released-by       "$(jq -r '.releasedBy // empty' release.json)"
-emit release-method    "$(jq -r '.releaseMethod // empty' release.json)"
-emit upload-time       "$(jq -r '.uploadTime // empty' release.json)"
-emit rollout           "$(jq -r '.rollout // empty' release.json)"
-emit is-mandatory      "$(jq -r '.isMandatory // false' release.json)"
-emit is-disabled       "$(jq -r '.isDisabled // false' release.json)"
+emit label             "$(jq -r '.label // empty' "$RELEASE_JSON")"
+emit package-hash      "$(jq -r '.packageHash // empty' "$RELEASE_JSON")"
+emit size              "$(jq -r '.size // empty' "$RELEASE_JSON")"
+emit app-version       "$(jq -r '.appVersion // empty' "$RELEASE_JSON")"
+emit description       "$(jq -r '.description // empty' "$RELEASE_JSON")"
+emit released-by       "$(jq -r '.releasedBy // empty' "$RELEASE_JSON")"
+emit release-method    "$(jq -r '.releaseMethod // empty' "$RELEASE_JSON")"
+emit upload-time       "$(jq -r '.uploadTime // empty' "$RELEASE_JSON")"
+emit rollout           "$(jq -r '.rollout // empty' "$RELEASE_JSON")"
+emit is-mandatory      "$(jq -r '.isMandatory // false' "$RELEASE_JSON")"
+emit is-disabled       "$(jq -r '.isDisabled // false' "$RELEASE_JSON")"
 
 echo "status=success" >> "$GITHUB_OUTPUT"

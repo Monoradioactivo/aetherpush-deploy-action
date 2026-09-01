@@ -86,6 +86,10 @@ run_case() {
   local output_file="$case_dir/github-output"
   local trace_file="$case_dir/trace"
   local log_file="$case_dir/log"
+  local runner_temp="$case_dir/runner-temp"
+  mkdir -p "$runner_temp"
+  local decoy='{"label":"decoy","blobUrl":"https://example.invalid/decoy","manifestBlobUrl":"https://example.invalid/decoy-manifest"}'
+  printf '%s\n' "$decoy" > "$working_dir/release.json"
   : > "$output_file"
 
   set +e
@@ -95,6 +99,7 @@ run_case() {
     export AETHER_STUB_TRACE="$trace_file"
     export AETHER_STUB_VERSION_FILE="$fixtures/CLI_VERSION"
     export GITHUB_OUTPUT="$output_file"
+    export RUNNER_TEMP="$runner_temp"
     export COMMAND="${COMMAND:-release-react}"
     export WORKING_DIR="$working_dir"
     export APP_NAME="${APP_NAME:-FixtureApp}"
@@ -134,10 +139,17 @@ run_case() {
   "$python_bin" "$parser" "$output_file" "$expected_outputs"
   grep -Fq "$expected_diagnostic" "$log_file" || fail "$name diagnostic"
 
+  assert_equal "$decoy" "$(cat "$working_dir/release.json")" "$name workspace decoy"
+  [ ! -e "$working_dir/release.json.tmp" ] || fail "$name workspace release.json.tmp"
+  [ ! -e "$runner_temp/aether-release.json.tmp" ] || fail "$name leftover aether-release.json.tmp"
+
   if [ "$expected_exit" = "0" ] && [ "$expected_outputs" != "skip" ]; then
-    [ -f "$working_dir/release.json" ] || fail "$name release.json missing"
-    assert_equal "1" "$(wc -l < "$working_dir/release.json" | tr -d ' ')" "$name release.json lines"
-    jq -e 'has("label") and (has("blobUrl") | not) and (has("manifestBlobUrl") | not)' "$working_dir/release.json" > /dev/null
+    [ -f "$runner_temp/aether-release.json" ] || fail "$name aether-release.json missing"
+    assert_equal "1" "$(wc -l < "$runner_temp/aether-release.json" | tr -d ' ')" "$name aether-release.json lines"
+    jq -e 'has("label") and (has("blobUrl") | not) and (has("manifestBlobUrl") | not)' "$runner_temp/aether-release.json" > /dev/null
+    local mapped_label
+    mapped_label=$(jq -r '.label' "$runner_temp/aether-release.json")
+    [ "$mapped_label" != "decoy" ] || fail "$name mapped decoy label"
     assert_equal "cwd=$logical_working_dir" "$(awk 'NR == 1 { print; exit }' "$trace_file")" "$name cwd"
     local expected_trace="$1"
     assert_equal "$expected_trace" "$(awk 'NR > 1 { print }' "$trace_file")" "$name argv"
@@ -177,4 +189,45 @@ NO_DUP=true run_case empty-duplicate empty.stdout 0 skip "::warning::CLI exited 
 run_case invalid invalid.stdout 1 failure 'This indicates a CLI bug'
 NO_DUP=true run_case wrong-shape wrong-shape.stdout 1 failure 'This indicates a CLI bug'
 
-printf 'PASS: 6 step script executions across 5 fixtures\n'
+unset_dir="$test_tmp_root/unset-runner-temp"
+mkdir -p "$unset_dir/work"
+: > "$unset_dir/github-output"
+set +e
+(
+  export PATH="$stub_bin:$PATH"
+  export AETHER_STUB_FIXTURE="$fixtures/unsigned.stdout"
+  export AETHER_STUB_TRACE="$unset_dir/trace"
+  export AETHER_STUB_VERSION_FILE="$fixtures/CLI_VERSION"
+  export GITHUB_OUTPUT="$unset_dir/github-output"
+  export COMMAND=release-react
+  export WORKING_DIR="$unset_dir/work"
+  export APP_NAME=FixtureApp
+  export UPDATE_PATH=
+  export TARGET_BIN=
+  export PLATFORM=ios
+  export DEPLOYMENT_NAME=Staging
+  export DESCRIPTION=
+  export MANDATORY=false
+  export ROLLOUT=100
+  export DISABLED=false
+  export NO_DUP=false
+  export FORCE=false
+  export CI_METADATA=true
+  export BUNDLE_NAME=
+  export ENTRY_FILE=
+  export GRADLE_FILE=
+  export PLIST_FILE=
+  export OUTPUT_DIR=
+  export SOURCEMAP_OUTPUT=
+  export PRIVATE_KEY_PATH=
+  export USE_HERMES=false
+  export DEVELOPMENT=false
+  env -u RUNNER_TEMP bash "$AETHER_ACTION_PATH/scripts/run-aether.sh"
+) > "$unset_dir/log" 2>&1
+unset_exit=$?
+set -e
+[ "$unset_exit" = "1" ] || fail "unset RUNNER_TEMP exit: expected '1', got '$unset_exit'"
+grep -Fq '::error::RUNNER_TEMP is unset or not a directory' "$unset_dir/log" || fail "unset RUNNER_TEMP diagnostic"
+[ ! -e "$unset_dir/work/release.json" ] || fail "unset RUNNER_TEMP wrote workspace release.json"
+
+printf 'PASS: 7 step script executions (6 fixture cases, 1 unset RUNNER_TEMP)\n'
