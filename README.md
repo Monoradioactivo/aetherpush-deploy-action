@@ -133,8 +133,8 @@ fetched through the URL before it is reachable through the app.
 The action writes `$RUNNER_TEMP/aether-release.json` while mapping the CLI `--json`
 object onto the outputs above, then deletes both URL fields from that file. Later
 steps in the same job read those outputs, not the file. Two action steps in one job
-overwrite the same temp path. The action does not upload that file, and neither
-should you.
+overwrite the same temp path. In a workflow YAML `path:`, that directory is
+`${{ runner.temp }}`. The action does not upload that file, and neither should you.
 
 ## Examples
 
