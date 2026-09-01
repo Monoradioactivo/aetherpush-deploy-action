@@ -130,10 +130,11 @@ again. The bundle is not secret content, since the same file is served to every 
 holding the deployment key, but a release that is disabled or still rolling out can be
 fetched through the URL before it is reachable through the app.
 
-The action writes `release.json` in the job workspace to map the CLI `--json` object
-onto the outputs above, then deletes both URL fields from the file. A later step in the
-same job reads release metadata rather than download links. The action does not upload
-that file, and neither should you.
+The action writes `$RUNNER_TEMP/aether-release.json` while mapping the CLI `--json`
+object onto the outputs above, then deletes both URL fields from that file. Later
+steps in the same job read those outputs, not the file. Two action steps in one job
+overwrite the same temp path. The action does not upload that file, and neither
+should you.
 
 ## Examples
 
