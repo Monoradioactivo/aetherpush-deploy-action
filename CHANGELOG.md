@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.2...v0.5.0) (2026-09-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* the action no longer writes release.json in the job workspace. Workflows that parse that file must use the existing step outputs instead. The scratch copy is $RUNNER_TEMP/aether-release.json and is not a later-step API.
+
+### Features
+
+* cut 0.5.0 for the release.json location move ([#35](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/35)) ([83fe295](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/83fe2950aacfb36fa4ae4f6b064a071d404739e2))
+
 ## [0.4.2](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.1...v0.4.2) (2026-08-29)
 
 
