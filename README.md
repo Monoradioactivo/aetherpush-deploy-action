@@ -108,7 +108,6 @@ so they don't belong in CI.
 | `size` | Package size in bytes. Empty when the CLI printed no release object. |
 | `app-version` | Targeted binary version. Empty when the CLI printed no release object. |
 | `description` | Final description, with `[ci=…]` appended when enabled. Empty when the CLI printed no release object. |
-| `released-by` | Always empty for releases made by this action. |
 | `release-method` | `Upload`, `Promote`, or `Rollback`. Empty when the CLI printed no release object. |
 | `upload-time` | Unix timestamp in milliseconds. Empty when the CLI printed no release object. |
 | `rollout` | Rollout percentage. `100` once complete. Empty when the CLI printed no release object. |
