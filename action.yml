@@ -184,10 +184,6 @@ outputs:
     description: 'Final release description as stored on the server, with the `[ci=...]` bracket appended when applicable.'
     value: ${{ steps.aether.outputs.description }}
 
-  released-by:
-    description: 'Always empty for releases made by this action.'
-    value: ${{ steps.aether.outputs.released-by }}
-
   release-method:
     description: |
       How the release was produced. One of: `Upload`, `Promote`, `Rollback`.
