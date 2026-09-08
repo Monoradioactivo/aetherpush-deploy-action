@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.5.0...v0.5.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **action:** drop the always-empty released-by output ([#37](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/37)) ([22ad8b4](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/22ad8b4847b9d5fa259998c083a6de869c8fa62e))
+
 ## [0.5.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.4.2...v0.5.0) (2026-09-01)
 
 
