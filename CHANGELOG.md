@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.5.1...v0.6.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* with no-duplicate-release-error enabled, a 409 raised by an unfinished rollout now fails the step instead of succeeding with empty release outputs. Finish the rollout, or roll back, before releasing again.
+
+### Features
+
+* move onto the CLI release that discriminates 409s ([#39](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/39)) ([64f06af](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/64f06af5933e6e80cd5b00259766b46cb3f196af))
+
 ## [0.5.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.5.0...v0.5.1) (2026-09-08)
 
 
