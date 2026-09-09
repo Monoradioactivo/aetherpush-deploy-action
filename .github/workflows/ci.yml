@@ -10,6 +10,25 @@ permissions:
   contents: read
 
 jobs:
+  branch-name:
+    name: Branch name policy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Validate branch prefix
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          if [[ "$BRANCH" =~ ^dependabot/ ]] || [[ "$BRANCH" =~ ^release-please-- ]]; then
+            echo "Skipping branch name policy for bot branch '$BRANCH'."
+            exit 0
+          fi
+          if [[ ! "$BRANCH" =~ ^(feat|fix|chore|refactor|docs|test)/ ]]; then
+            echo "::error::Branch '$BRANCH' must start with feat/, fix/, chore/, refactor/, docs/, or test/"
+            exit 1
+          fi
+          echo "Branch '$BRANCH' is valid."
+
   step-script-tests:
     name: Step script tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -48,14 +67,23 @@ jobs:
   yaml-lint:
     name: YAML lint
     needs:
+      - branch-name
       - step-script-tests
       - cli-install-smoke
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Require the branch name policy on pull requests
+        if: ${{ github.event_name == 'pull_request' && needs.branch-name.result != 'success' }}
+        run: |
+          echo "::error::The Branch name policy job did not succeed; see that job for the allowed prefixes."
+          exit 1
+
       - name: Require test jobs
         if: ${{ needs.step-script-tests.result != 'success' || needs.cli-install-smoke.result != 'success' }}
-        run: exit 1
+        run: |
+          echo "::error::Step script tests or CLI install smoke did not succeed; see those jobs."
+          exit 1
 
       - name: Checkout
         uses: actions/checkout@v4
