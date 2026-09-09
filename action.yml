@@ -73,9 +73,10 @@ inputs:
 
   no-duplicate-release-error:
     description: |
-      When set to `true`, a 409 from the server makes the CLI warn instead of
-      error and the step succeeds with empty release outputs. The CLI warning
-      names the reason (identical package, or an unfinished rollout).
+      When set to `true`, the CLI warns instead of erroring and the step
+      succeeds with empty release outputs for a 409 the server reports as a
+      duplicate package, or reports without naming a cause. A 409 reported as
+      an unfinished rollout, or under any other name, fails the step.
     required: false
     default: 'false'
 
@@ -161,7 +162,8 @@ outputs:
   status:
     description: |
       `success` if the release completed, or if `no-duplicate-release-error` is
-      `true` and the CLI printed no JSON (a swallowed 409). `failure` otherwise.
+      `true` and the CLI printed no JSON (a swallowed duplicate-package 409).
+      `failure` otherwise.
     value: ${{ steps.aether.outputs.status }}
 
   label:
@@ -229,13 +231,13 @@ runs:
 
     - name: Install Aether CLI
       shell: bash
-      run: npm install -g @aetherpush/cli@0.5.2
+      run: npm install -g @aetherpush/cli@0.8.0
 
     - name: Verify CLI version matches pin
       shell: bash
       run: |
         set -euo pipefail
-        EXPECTED="0.5.2"
+        EXPECTED="0.8.0"
         INSTALLED=$(aether --version 2>/dev/null | tr -d ' \r\n')
         if [ "$INSTALLED" != "$EXPECTED" ]; then
           echo "::error::Installed CLI version '$INSTALLED' does not match expected '$EXPECTED'. Check npm registry and cache."

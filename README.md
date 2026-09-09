@@ -68,7 +68,7 @@ so they don't belong in CI.
 | `rollout` | no | `100%` | Percentage of clients. |
 | `mandatory` | no | `false` | Force install on clients. |
 | `disabled` | no | `false` | Upload in a disabled state. |
-| `no-duplicate-release-error` | no | `false` | The CLI warns on a 409 (identical package or unfinished rollout) and the step succeeds with empty release outputs. |
+| `no-duplicate-release-error` | no | `false` | The CLI warns and the step succeeds with empty release outputs for a 409 reported as a duplicate package, or reported without a named cause. A 409 reported as an unfinished rollout, or under any other name, fails the step. |
 | `ci-metadata` | no | `true` | Append a `[ci=…]` tag to the description. |
 | `force` | no | `false` | Skip destructive-action prompts. |
 | `api-url` | no | | Override the server URL (e.g. staging). |
@@ -102,7 +102,7 @@ so they don't belong in CI.
 
 | Output | Description |
 |---|---|
-| `status` | `success` or `failure`. `success` includes a swallowed 409 when `no-duplicate-release-error` is true. |
+| `status` | `success` or `failure`. `success` includes a swallowed duplicate-package 409 when `no-duplicate-release-error` is true. |
 | `label` | Release label (e.g. `v4`). Empty when the CLI printed no release object. |
 | `package-hash` | SHA-256 of the package. Empty when the CLI printed no release object. |
 | `size` | Package size in bytes. Empty when the CLI printed no release object. |
@@ -118,8 +118,12 @@ When `no-duplicate-release-error` is true and the CLI prints no JSON, `status` i
 `success` and the metadata outputs stay empty. Put `id: release` on the action
 step, then gate later steps with `if: steps.release.outputs.label != ''`. A job
 that uses `needs:` must pass `label` through that job's `outputs` map; `steps`
-is not visible across jobs. The CLI warning in the log names the 409 (identical
-package, or an unfinished rollout).
+is not visible across jobs. The CLI warning in the log names the conflict the
+server reported. A 409 reported as an unfinished rollout, or under any other
+name, makes the CLI exit with an error and the step fails. One case still goes
+the old way: the server's contract lets a conflict outside those two causes
+answer without naming one, and the CLI cannot tell an unnamed conflict from a
+duplicate, so it swallows that too and the step reports a skip.
 
 The action has no output for the bundle download URL. The CLI returns a presigned URL
 that stays valid for seven days, and there is no way to revoke a single link. A step
@@ -130,7 +134,7 @@ holding the deployment key, but a release that is disabled or still rolling out 
 fetched through the URL before it is reachable through the app.
 
 The action writes `$RUNNER_TEMP/aether-release.json` while mapping the CLI `--json`
-object onto the outputs above, then deletes both URL fields from that file. Later
+object onto the outputs above, then deletes the URL field from that file. Later
 steps in the same job read those outputs, not the file. Two action steps in one job
 overwrite the same temp path. In a workflow YAML `path:`, that directory is
 `${{ runner.temp }}`. The action does not upload that file, and neither should you.
