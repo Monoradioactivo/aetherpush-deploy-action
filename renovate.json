@@ -45,25 +45,28 @@
   ],
   "packageRules": [
     {
-      "description": "Update the bundled CLI daily after its three-day release cooldown",
+      "description": "Open a CLI bump on any Renovate run once its three-day release cooldown passes. Merged by hand because a CLI release can change what the action's flags do",
       "matchDepNames": [
         "@aetherpush/cli"
       ],
       "semanticCommitType": "fix",
-      "automerge": true,
-      "automergeStrategy": "squash",
       "schedule": [
-        "* 0-5 * * *"
+        "at any time"
       ],
       "prPriority": 10
     },
     {
+      "description": "Keep the README's own usage examples on the newest tag. No cooldown: this is our own release, not a third-party dependency",
       "matchDepNames": [
         "Monoradioactivo/aetherpush-deploy-action"
       ],
       "semanticCommitType": "docs",
       "automerge": true,
-      "automergeStrategy": "squash"
+      "automergeStrategy": "squash",
+      "schedule": [
+        "at any time"
+      ],
+      "minimumReleaseAge": null
     },
     {
       "matchDepNames": [
