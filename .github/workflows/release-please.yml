@@ -39,6 +39,7 @@ jobs:
         if: steps.release.outputs.pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ steps.release.outputs.pr }}
         run: |
-          PR_NUMBER=$(echo '${{ steps.release.outputs.pr }}' | jq -r '.number')
+          PR_NUMBER=$(echo "$PR" | jq -r '.number')
           gh pr update-branch "$PR_NUMBER" || true

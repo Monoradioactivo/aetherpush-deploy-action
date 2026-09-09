@@ -26,4 +26,6 @@ jobs:
       - name: Enable auto-merge on the release PR
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash --repo "${{ github.repository }}"
+          PR: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
+        run: gh pr merge "$PR" --auto --squash --repo "$GH_REPO"
