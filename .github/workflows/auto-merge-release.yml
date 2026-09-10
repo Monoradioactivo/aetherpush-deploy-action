@@ -2,7 +2,7 @@ name: Auto-merge Release
 
 on:
   pull_request:
-    types: [ opened, reopened, synchronize, labeled, unlabeled ]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
