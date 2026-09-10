@@ -111,3 +111,10 @@ jobs:
 
       - name: Workflow run interpolation tests
         run: python3 tests/workflow-run-interpolation.test.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Release auto-merge gate tests
+        run: node --test .github/scripts/release-auto-merge-gate.test.mjs
