@@ -251,7 +251,7 @@ runs:
         API_URL: ${{ inputs.api-url }}
       run: |
         set -euo pipefail
-        args=(--accessKey "$ACCESS_KEY")
+        args=(--accessKey="$ACCESS_KEY")
         if [ -n "$API_URL" ]; then
           args+=(--serverUrl "$API_URL")
         fi
