@@ -22,18 +22,6 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/^README\\.md$/"
-      ],
-      "matchStrings": [
-        "aetherpush-deploy-action@v(?<currentValue>\\d+\\.\\d+\\.\\d+)"
-      ],
-      "depNameTemplate": "Monoradioactivo/aetherpush-deploy-action",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
         "/^tests\\/fixtures\\/CLI_VERSION$/"
       ],
       "matchStrings": [
@@ -54,19 +42,6 @@
         "at any time"
       ],
       "prPriority": 10
-    },
-    {
-      "description": "Keep the README's own usage examples on the newest tag. No cooldown: this is our own release, not a third-party dependency",
-      "matchDepNames": [
-        "Monoradioactivo/aetherpush-deploy-action"
-      ],
-      "semanticCommitType": "docs",
-      "automerge": true,
-      "automergeStrategy": "squash",
-      "schedule": [
-        "at any time"
-      ],
-      "minimumReleaseAge": null
     },
     {
       "matchDepNames": [

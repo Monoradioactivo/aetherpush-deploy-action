@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      # x-release-please-start-version
       - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+      # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
           app-name: my-rn-app
@@ -147,7 +149,9 @@ For a JS bundle you already built, use `command: release` with an explicit path
 and target version.
 
 ```yaml
+# x-release-please-start-version
 - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+# x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
     app-name: my-app
@@ -163,7 +167,9 @@ and target version.
 `target-binary-version` to let the CLI read the version from the native project.
 
 ```yaml
+# x-release-please-start-version
 - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+# x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
     app-name: my-rn-app
@@ -192,7 +198,9 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      # x-release-please-start-version
       - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+      # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
           app-name: my-rn-app
@@ -224,7 +232,9 @@ jobs:
           node-version: 22
       - run: npm ci
         working-directory: apps/mobile
+      # x-release-please-start-version
       - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+      # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
           app-name: my-rn-app
@@ -239,7 +249,9 @@ jobs:
 While the action is in 0.x, pin to an exact version:
 
 ```yaml
+# x-release-please-start-version
 uses: Monoradioactivo/aetherpush-deploy-action@v0.6.1
+# x-release-please-end
 ```
 
 Moving tags (`@v1`, `@v1.2`) arrive at 1.0.0. Until then, bump the exact version

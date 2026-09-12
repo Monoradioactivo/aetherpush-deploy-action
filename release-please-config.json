@@ -6,7 +6,13 @@
   "bump-patch-for-minor-pre-major": false,
   "packages": {
     ".": {
-      "package-name": "aetherpush-deploy-action"
+      "package-name": "aetherpush-deploy-action",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "README.md"
+        }
+      ]
     }
   }
 }
