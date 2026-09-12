@@ -43,6 +43,39 @@ assert_help_options login \
   --accessKey \
   --serverUrl
 
+login_step=$(awk '
+  /name: Login to Aether/ { in_login = 1 }
+  in_login { print }
+  in_login && /name: Run aether/ { exit }
+' "$repo_root/action.yml")
+[ -n "$login_step" ] || fail "Login to Aether step not found in action.yml"
+grep -Fq 'args=(--accessKey="$ACCESS_KEY")' <<< "$login_step" \
+  || fail "login step must pass --accessKey in the equals form used by action.yml"
+if grep -Fq 'args=(--accessKey "$ACCESS_KEY")' <<< "$login_step"; then
+  fail "login step still has the space form of --accessKey"
+fi
+
+assert_login_access_key_equals_form() {
+  local key="$1"
+  local output exit_code
+  set +e
+  output=$(
+    CI=true \
+    LOCALAPPDATA="$test_tmp_root/login-config" \
+    "$cli" login --accessKey="$key" --serverUrl "http://127.0.0.1:9" 2>&1
+  )
+  exit_code=$?
+  set -e
+  [ "$exit_code" != "0" ] || fail "login unexpectedly succeeded with unusable access key"
+  grep -Fq 'Unable to connect to the Aether server' <<< "$output" \
+    || fail "login did not treat the dash-leading value as the access key: $output"
+  if grep -Fq 'Interactive login is unavailable' <<< "$output"; then
+    fail "login fell through to interactive auth; access key was not consumed: $output"
+  fi
+}
+
+assert_login_access_key_equals_form '-NotARealAccessKey'
+
 assert_parses_to_auth() {
   local command_name="$1"
   shift
