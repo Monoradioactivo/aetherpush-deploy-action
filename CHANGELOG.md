@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.0...v0.6.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* pass the access key to login in the equals form ([#46](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/46)) ([a8edc62](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/a8edc62847228e5d830a4f42c14f0cbed8f985f8))
+
 ## [0.6.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.5.1...v0.6.0) (2026-09-09)
 
 
