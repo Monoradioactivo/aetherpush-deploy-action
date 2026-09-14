@@ -55,7 +55,7 @@ jobs:
           fi
           echo "applies=$APPLIES" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.scope.outputs.applies == 'true'
 
       - uses: actions/setup-node@v4
