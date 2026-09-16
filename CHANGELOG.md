@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.1...v0.6.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* **ci:** count Brief-Verified across Co-authored-by trailers ([#52](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/52)) ([ae49a44](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/ae49a4499d18aefa28bc1fcbf0415f7d64ecb4b3))
+
 ## [0.6.1](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.0...v0.6.1) (2026-09-12)
 
 
