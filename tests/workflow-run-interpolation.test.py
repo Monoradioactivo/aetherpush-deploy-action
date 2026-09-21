@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import re
 import sys
 from pathlib import Path
@@ -58,6 +59,65 @@ def index_of_step(steps: list[dict], name: str) -> int:
     return -1
 
 
+EXPECTED_REFUSE_IF = "steps.gate.outputs.ok == 'false' && github.event_name != 'schedule'"
+CARVE_OUT_NEEDLE = "schedule carve-out"
+EXIT_1_NEEDLE = "no longer exits 1"
+
+
+def clone_gate() -> dict:
+    return copy.deepcopy(gate_workflow())
+
+
+def normalize_if(condition: object) -> str:
+    return " ".join(str(condition or "").split())
+
+
+def check_refuse_schedule_carve_out(steps: list[dict] | None = None) -> list[str]:
+    failures: list[str] = []
+    if steps is None:
+        steps = gate_steps()
+    refuse = index_of_step(steps, "Fail when the release is not accounted for")
+    if refuse == -1:
+        return ["the gate job has no 'Fail when the release is not accounted for' step"]
+    if normalize_if(steps[refuse].get("if")) != EXPECTED_REFUSE_IF:
+        failures.append(
+            "the refuse step must fail closed on pull_request and dispatch while staying green on schedule. Doctrine pins the schedule carve-out (ci-release-gate-scheduled-hold-noise); dropping != 'schedule' reopens hold-noise email, and dropping the ok==false half greens an unaccounted release PR check."
+        )
+    if not re.search(r"^\s*exit 1\s*$", steps[refuse].get("run") or "", re.MULTILINE):
+        failures.append(
+            "the refuse step keeps its if: but no longer exits 1, so a held release PR can report the required check green"
+        )
+    return failures
+
+
+def drop_schedule_carve_out(step: dict) -> None:
+    step["if"] = "steps.gate.outputs.ok == 'false'"
+
+
+def never_run_refuse(step: dict) -> None:
+    step["if"] = "false"
+
+
+def refuse_without_exit(step: dict) -> None:
+    step["run"] = 'echo "::error::The release contains commits this gate cannot vouch for."'
+
+
+def planted_refuse_must_fail(mutator, needle: str) -> list[str]:
+    doc = clone_gate()
+    steps = doc["jobs"]["gate"]["steps"]
+    refuse = index_of_step(steps, "Fail when the release is not accounted for")
+    if refuse == -1:
+        return ["planted refuse mutation: refuse step missing"]
+    mutator(steps[refuse])
+    failures = check_refuse_schedule_carve_out(steps)
+    if not failures:
+        return [f"planted refuse mutation was not caught ({needle})"]
+    joined = " ".join(failures)
+    if needle not in joined:
+        return [f"planted refuse mutation failed for the wrong reason: {joined}"]
+    return []
+
+
 def reads_verdict(step: dict) -> bool:
     sources = [step.get("if")]
     for key in ("env", "with"):
@@ -87,6 +147,8 @@ def check_absent_verdict_step() -> list[str]:
         failures.append("the gate job has no 'Fail when the release is not accounted for' step")
     elif softens_failure(steps[refuse]):
         failures.append("the step that reds an unaccounted release carries continue-on-error")
+    if refuse != -1:
+        failures.extend(check_refuse_schedule_carve_out(steps))
 
     doc = gate_workflow()
     job = doc["jobs"]["gate"]
@@ -191,8 +253,27 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
+    refuse_failures = check_refuse_schedule_carve_out()
+    if refuse_failures:
+        print("FAIL: the refuse step schedule carve-out:", file=sys.stderr)
+        for failure in refuse_failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
+    planted_failures: list[str] = []
+    planted_failures.extend(planted_refuse_must_fail(drop_schedule_carve_out, CARVE_OUT_NEEDLE))
+    planted_failures.extend(planted_refuse_must_fail(never_run_refuse, CARVE_OUT_NEEDLE))
+    planted_failures.extend(planted_refuse_must_fail(refuse_without_exit, EXIT_1_NEEDLE))
+    if planted_failures:
+        print("FAIL: planted refuse mutations:", file=sys.stderr)
+        for failure in planted_failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
     print("PASS: no workflow interpolates expressions inside run:")
     print("PASS: an absent gate verdict fails the job before any step reads it")
+    print("PASS: the refuse step skips schedule and still fails closed on every other event")
+    print("PASS: planted refuse mutations fail the schedule carve-out check")
     return 0
 
 
