@@ -20,6 +20,7 @@
 
 - [ ] Commit message follows Conventional Commits
 - [ ] Branch name starts with `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, or `test/`
+- [ ] Tests cover the changed behavior
 - [ ] CI passes
 - [ ] README updated if the public API changed
 - [ ] No secrets, tokens, or PII in diff
