@@ -22,5 +22,5 @@
 - [ ] Branch name starts with `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, or `test/`
 - [ ] Tests cover the changed behavior
 - [ ] CI passes
-- [ ] README updated if the public API changed
-- [ ] No secrets, tokens, or PII in diff
+- [ ] README and `action.yml` descriptions updated if inputs or outputs changed
+- [ ] No secrets, tokens, or PII in the diff or in workflow logs
