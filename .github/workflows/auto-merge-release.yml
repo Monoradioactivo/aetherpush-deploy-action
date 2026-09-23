@@ -59,7 +59,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.scope.outputs.applies == 'true'
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Generate App token
         id: app-token
