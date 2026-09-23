@@ -246,6 +246,14 @@ RESOLVE_STUB = "\n".join(
         'case "$1 $2" in',
         '  "pr list") BODY="$STUB_OPEN_PULLS" ;;',
         '  "api repos/$GITHUB_REPOSITORY/pulls/"*) BODY="$STUB_PULL" ;;',
+        '  "pr merge") exit 0 ;;',
+        '  "pr comment")',
+        '    cat >> "$GH_BODIES"',
+        '    if [ "$STUB_COMMENT_FAIL" = "1" ]; then echo "stub: refusing to comment" >&2; exit 1; fi',
+        "    exit 0 ;;",
+        '  "api --paginate")',
+        '    if [ "$STUB_COMMENTS_FAIL" = "1" ]; then echo "stub: refusing the comments read" >&2; exit 1; fi',
+        '    BODY="$STUB_COMMENTS" ;;',
         '  *) echo "unexpected gh: $*" >&2; exit 1 ;;',
         "esac",
         'printf "%s" "$BODY" | jq -r "$FILTER"',
@@ -259,6 +267,9 @@ STEP_EXPRESSIONS = {
     "${{ github.event.pull_request.state }}": "pr_state",
     "${{ github.event.pull_request.number }}": "event_pr",
     "${{ steps.app-token.outputs.token }}": "token",
+    "${{ steps.pr.outputs.number }}": "pr_number",
+    "${{ steps.gate.outputs.reasons }}": "reasons",
+    "${{ steps.gate.outputs.marker }}": "marker",
 }
 
 
@@ -266,7 +277,7 @@ class StepFailure(Exception):
     pass
 
 
-def run_step(doc: dict, step: dict, context: dict) -> tuple[dict, str]:
+def run_step(doc: dict, step: dict, context: dict) -> dict:
     if not isinstance(step.get("run"), str):
         raise StepFailure(f"{step.get('name')} has no run script")
     env = {
@@ -274,6 +285,9 @@ def run_step(doc: dict, step: dict, context: dict) -> tuple[dict, str]:
         "GITHUB_REPOSITORY": RESOLVE_REPO,
         "STUB_OPEN_PULLS": context.get("open_pulls", "[]"),
         "STUB_PULL": context.get("pull", ""),
+        "STUB_COMMENTS": context.get("comments", "[]"),
+        "STUB_COMMENTS_FAIL": context.get("comments_fail", ""),
+        "STUB_COMMENT_FAIL": context.get("comment_fail", ""),
     }
     env.update({key: str(value) for key, value in (doc.get("env") or {}).items()})
     for key, expression in (step.get("env") or {}).items():
@@ -295,22 +309,36 @@ def run_step(doc: dict, step: dict, context: dict) -> tuple[dict, str]:
         output.write_text("", encoding="utf-8")
         calls = root / "gh_calls"
         calls.write_text("", encoding="utf-8")
+        bodies = root / "gh_bodies"
+        bodies.write_text("", encoding="utf-8")
+        summary = root / "step_summary"
+        summary.write_text("", encoding="utf-8")
         env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
         env["GITHUB_OUTPUT"] = str(output)
         env["GH_CALLS"] = str(calls)
+        env["GH_BODIES"] = str(bodies)
+        env["GITHUB_STEP_SUMMARY"] = str(summary)
         result = subprocess.run(
             ["bash", "-e", str(script)], env=env, capture_output=True, text=True, timeout=30
         )
         if "unexpected gh:" in result.stderr:
             raise StepFailure(f"{step.get('name')} asked the stub something it does not answer: {result.stderr}")
-        if result.returncode != 0:
+        if context.get("expect_failure"):
+            if result.returncode == 0:
+                raise StepFailure(f"{step.get('name')} exited 0 where it had to fail")
+        elif result.returncode != 0:
             raise StepFailure(f"{step.get('name')} exited {result.returncode}: {result.stderr}")
         outputs: dict = {}
         for line in output.read_text(encoding="utf-8").splitlines():
             key, sep, value = line.partition("=")
             if sep and key:
                 outputs[key] = value
-        return outputs, calls.read_text(encoding="utf-8")
+        return {
+            "outputs": outputs,
+            "calls": calls.read_text(encoding="utf-8"),
+            "bodies": bodies.read_text(encoding="utf-8"),
+            "summary": summary.read_text(encoding="utf-8"),
+        }
 
 
 def resolve_release_pull_request(doc: dict, context: dict) -> dict:
@@ -329,13 +357,115 @@ def resolve_release_pull_request(doc: dict, context: dict) -> dict:
         raise StepFailure(f"the evaluate step's if is {gate.get('if')!r}")
 
     full = {"token": "stub-app-token", "event_pr": "", "head_ref": "", "pr_state": "", **context}
-    scoped, _ = run_step(doc, scope, full)
+    scoped = run_step(doc, scope, full)["outputs"]
     if scoped.get("applies") != "true":
         return {"applies": scoped.get("applies"), "number": "", "calls": ""}
-    resolved, calls = run_step(doc, resolve, full)
-    if "number" not in resolved:
+    resolve_run = run_step(doc, resolve, full)
+    if "number" not in resolve_run["outputs"]:
         raise StepFailure("the resolve step exited without writing number")
-    return {"applies": "true", "number": resolved["number"], "calls": calls}
+    return {"applies": "true", "number": resolve_run["outputs"]["number"], "calls": resolve_run["calls"]}
+
+
+MARKER_A = "<!-- release-auto-merge-gate:aaaaaaaaaaaaaaaa -->"
+MARKER_B = "<!-- release-auto-merge-gate:bbbbbbbbbbbbbbbb -->"
+LEGACY_MARKER = "<!-- release-auto-merge-gate -->"
+REASONS_A = "#1 (1111111) carries neither a Brief-Verified trailer nor the brief-verified label"
+REASONS_B = f"{REASONS_A}; #2 (2222222) carries neither a Brief-Verified trailer nor the brief-verified label"
+
+
+def held_comments(*bodies: str) -> str:
+    return json.dumps([{"id": index + 1, "body": body} for index, body in enumerate(bodies)])
+
+
+def hold_comment(marker: str, reasons: str) -> str:
+    return f"{marker}\nThis release is held for a human merge:\n\n{reasons}\n"
+
+
+def run_hold(**context) -> dict:
+    doc = gate_workflow()
+    steps = doc["jobs"]["gate"]["steps"]
+    hold_at = index_of_step(steps, "Hold the release for a human")
+    if hold_at == -1:
+        raise StepFailure("the gate job lost its hold step")
+    full = {
+        "token": "stub-app-token",
+        "pr_number": "42",
+        "reasons": REASONS_A,
+        "marker": MARKER_A,
+        "comments": held_comments(),
+        **context,
+    }
+    return run_step(doc, steps[hold_at], full)
+
+
+def commented(run: dict) -> bool:
+    return bool(re.search(r"^pr comment", run["calls"], re.MULTILINE))
+
+
+def check_hold_comment_refresh() -> list[str]:
+    failures: list[str] = []
+
+    steps = gate_workflow()["jobs"]["gate"]["steps"]
+    hold_at = index_of_step(steps, "Hold the release for a human")
+    if hold_at == -1:
+        return ["the gate job lost its hold step"]
+    hold = steps[hold_at]
+    if (hold.get("env") or {}).get("MARKER_ID") != "${{ steps.gate.outputs.marker }}":
+        failures.append("the hold step no longer reads the marker the gate writes")
+
+    if not commented(run_hold()):
+        failures.append("a held release with no hold comment yet was left without one")
+
+    unchanged = run_hold(comments=held_comments(hold_comment(MARKER_A, REASONS_A)))
+    if commented(unchanged):
+        failures.append("a hold whose reasons did not change earned a second comment")
+
+    changed = run_hold(
+        marker=MARKER_B,
+        reasons=REASONS_B,
+        comments=held_comments(hold_comment(MARKER_A, REASONS_A)),
+    )
+    if not commented(changed):
+        failures.append("a hold whose reasons changed earned no comment")
+    elif "#2 (2222222)" not in changed["bodies"]:
+        failures.append("the refreshed comment does not name the commit that changed the reasons")
+
+    stale_newest = run_hold(
+        comments=held_comments(hold_comment(MARKER_A, REASONS_A), hold_comment(MARKER_B, REASONS_B))
+    )
+    if not commented(stale_newest):
+        failures.append("an older matching comment silenced a hold whose newest comment differs")
+
+    edited = run_hold(
+        comments=held_comments(f"{MARKER_A}\r\nThis release is held for a human merge:\r\n\r\nand a note")
+    )
+    if commented(edited):
+        failures.append("a hold comment edited in the browser earns a fresh comment on every run")
+
+    unreadable = run_hold(comments_fail="1", expect_failure=True)
+    if commented(unreadable):
+        failures.append("a failed comments read still posted a comment")
+    if "Could not read the comments" not in unreadable["summary"]:
+        failures.append("a failed comments read did not say so in the step summary")
+
+    null_body = run_hold(
+        comments=json.dumps([{"id": 1, "body": None}, {"id": 2, "body": hold_comment(MARKER_A, REASONS_A)}])
+    )
+    if commented(null_body):
+        failures.append("a comment with no body broke the read")
+
+    legacy = run_hold(marker="", comments=held_comments(hold_comment(LEGACY_MARKER, REASONS_A)))
+    if commented(legacy):
+        failures.append("the no-marker fallback commented although a hold comment was already there")
+    bare = run_hold(marker="")
+    if not commented(bare):
+        failures.append("the no-marker fallback left a held release without any comment")
+
+    refused = run_hold(comment_fail="1", expect_failure=True)
+    if "this hold is not reported" not in refused["summary"]:
+        failures.append("a refused comment did not say so in the step summary")
+
+    return failures
 
 
 def pull_facts(author: str = RELEASE_BOT, head: str = RELEASE_HEAD, state: str = "open") -> str:
@@ -548,6 +678,16 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
+    try:
+        hold_failures = check_hold_comment_refresh()
+    except StepFailure as error:
+        hold_failures = [str(error)]
+    if hold_failures:
+        print("FAIL: the hold comment refresh:", file=sys.stderr)
+        for failure in hold_failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
     print("PASS: no workflow interpolates expressions inside run:")
     print("PASS: an absent gate verdict fails the job before any step reads it")
     print("PASS: the refuse step skips schedule and still fails closed on every other event")
@@ -555,6 +695,7 @@ def main() -> int:
     print("PASS: every step that acts on the verdict reads an explicit true or false")
     print("PASS: a genuine release pull request resolves, and both empty exits stay empty")
     print("PASS: planted resolution mutations fail the genuine release check")
+    print("PASS: the hold comment is refreshed when its reasons change and left alone when they do not")
     return 0
 
 
