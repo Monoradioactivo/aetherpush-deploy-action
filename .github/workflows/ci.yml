@@ -117,7 +117,7 @@ jobs:
           node-version: "22"
 
       - name: Release auto-merge gate tests
-        run: node --test .github/scripts/release-auto-merge-gate.test.mjs
+        run: node --test .github/scripts/release-auto-merge-gate.test.mjs .github/scripts/check-release-auto-merge.test.mjs
 
       - name: Behind bot tests
         run: node --test .github/scripts/behind-bot.test.mjs
