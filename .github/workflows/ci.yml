@@ -121,3 +121,6 @@ jobs:
 
       - name: Behind bot tests
         run: node --test .github/scripts/behind-bot.test.mjs
+
+      - name: Commit provenance tests
+        run: node --test .github/scripts/commit-provenance.test.mjs
