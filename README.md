@@ -31,7 +31,7 @@ jobs:
           node-version: 22
       - run: npm ci
       # x-release-please-start-version
-      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
@@ -148,7 +148,7 @@ and target version.
 
 ```yaml
 # x-release-please-start-version
-- uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+- uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
 # x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
@@ -166,7 +166,7 @@ and target version.
 
 ```yaml
 # x-release-please-start-version
-- uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+- uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
 # x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
@@ -197,7 +197,7 @@ jobs:
           node-version: 22
       - run: npm ci
       # x-release-please-start-version
-      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
@@ -231,7 +231,7 @@ jobs:
       - run: npm ci
         working-directory: apps/mobile
       # x-release-please-start-version
-      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+      - uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
@@ -248,7 +248,7 @@ While the action is in 0.x, pin to an exact version:
 
 ```yaml
 # x-release-please-start-version
-uses: Monoradioactivo/aetherpush-deploy-action@v0.6.4
+uses: Monoradioactivo/aetherpush-deploy-action@v0.6.5
 # x-release-please-end
 ```
 

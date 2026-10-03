@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.4...v0.6.5) (2026-10-03)
+
+
+### Bug Fixes
+
+* **action:** say the duplicate skip swallows only a named duplicate 409 ([#74](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/74)) ([035ebf3](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/035ebf371d0e00bfbd7ced8829cc44958a614f90))
+
 ## [0.6.4](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.3...v0.6.4) (2026-09-26)
 
 
