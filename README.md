@@ -70,7 +70,7 @@ so they don't belong in CI.
 | `rollout` | no | `100%` | Percentage of clients. |
 | `mandatory` | no | `false` | Force install on clients. |
 | `disabled` | no | `false` | Upload in a disabled state. |
-| `no-duplicate-release-error` | no | `false` | The CLI warns and the step succeeds with empty release outputs for a 409 reported as a duplicate package, or reported without a named cause. A 409 reported as an unfinished rollout, or under any other name, fails the step. |
+| `no-duplicate-release-error` | no | `false` | The CLI warns and the step succeeds with empty release outputs, but only for a 409 reported as a duplicate package (`duplicate_release`). Any other 409 fails the step, whether it names another cause, such as an unfinished rollout, or names none. |
 | `ci-metadata` | no | `true` | Append a `[ci=…]` tag to the description. |
 | `force` | no | `false` | Skip destructive-action prompts. |
 | `api-url` | no | | Override the server URL (e.g. staging). |
@@ -121,11 +121,9 @@ When `no-duplicate-release-error` is true and the CLI prints no JSON, `status` i
 step, then gate later steps with `if: steps.release.outputs.label != ''`. A job
 that uses `needs:` must pass `label` through that job's `outputs` map; `steps`
 is not visible across jobs. The CLI warning in the log names the conflict the
-server reported. A 409 reported as an unfinished rollout, or under any other
-name, makes the CLI exit with an error and the step fails. One case still goes
-the old way: the server's contract lets a conflict outside those two causes
-answer without naming one, and the CLI cannot tell an unnamed conflict from a
-duplicate, so it swallows that too and the step reports a skip.
+server reported. Only a 409 named `duplicate_release` is skipped. Any other 409
+makes the CLI exit with an error and fails the step, whether the server names
+another cause, such as an unfinished rollout, or names none.
 
 The action has no output for the bundle download URL. The CLI returns a presigned URL
 that stays valid for seven days, and there is no way to revoke a single link. A step

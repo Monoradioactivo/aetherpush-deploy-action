@@ -74,9 +74,10 @@ inputs:
   no-duplicate-release-error:
     description: |
       When set to `true`, the CLI warns instead of erroring and the step
-      succeeds with empty release outputs for a 409 the server reports as a
-      duplicate package, or reports without naming a cause. A 409 reported as
-      an unfinished rollout, or under any other name, fails the step.
+      succeeds with empty release outputs, but only for a 409 the server
+      reports as a duplicate package (`duplicate_release`). Any other 409
+      fails the step, whether it names another cause, such as an unfinished
+      rollout, or names none.
     required: false
     default: 'false'
 
