@@ -33,7 +33,7 @@
   ],
   "packageRules": [
     {
-      "description": "Open a CLI bump on any Renovate run once its three-day release cooldown passes. Merged by hand because a CLI release can change what the action's flags do",
+      "description": "Open a CLI bump on the first Renovate run after the CLI is published. No cooldown: this is our own release, not a third-party dependency. Merged by hand because a CLI release can change what the action's flags do",
       "matchDepNames": [
         "@aetherpush/cli"
       ],
@@ -41,6 +41,7 @@
       "schedule": [
         "at any time"
       ],
+      "minimumReleaseAge": null,
       "prPriority": 10
     },
     {
