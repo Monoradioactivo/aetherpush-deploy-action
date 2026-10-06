@@ -247,6 +247,12 @@ RESOLVE_STUB = "\n".join(
         '  "pr list") BODY="$STUB_OPEN_PULLS" ;;',
         '  "api repos/$GITHUB_REPOSITORY/pulls/"*) BODY="$STUB_PULL" ;;',
         '  "pr merge") exit 0 ;;',
+        '  "pr view")',
+        '    if [ "$STUB_PR_VIEW_FAIL" = "1" ]; then echo "stub: refusing the pull request read" >&2; exit 1; fi',
+        '    BODY="$STUB_PR_VIEW" ;;',
+        '  "api repos/$GITHUB_REPOSITORY/actions/runs/"*)',
+        '    if [ "$STUB_RUN_FAIL" = "1" ]; then echo "stub: refusing the run read" >&2; exit 1; fi',
+        '    BODY="$STUB_RUN" ;;',
         '  "pr comment")',
         '    cat >> "$GH_BODIES"',
         '    if [ "$STUB_COMMENT_FAIL" = "1" ]; then echo "stub: refusing to comment" >&2; exit 1; fi',
@@ -288,6 +294,11 @@ def run_step(doc: dict, step: dict, context: dict) -> dict:
         "STUB_COMMENTS": context.get("comments", "[]"),
         "STUB_COMMENTS_FAIL": context.get("comments_fail", ""),
         "STUB_COMMENT_FAIL": context.get("comment_fail", ""),
+        "GITHUB_RUN_ID": "99",
+        "STUB_RUN": context.get("run", json.dumps({"run_started_at": RUN_STARTED_AT})),
+        "STUB_RUN_FAIL": context.get("run_fail", ""),
+        "STUB_PR_VIEW": context.get("pr_view", json.dumps({"autoMergeRequest": None})),
+        "STUB_PR_VIEW_FAIL": context.get("pr_view_fail", ""),
     }
     env.update({key: str(value) for key, value in (doc.get("env") or {}).items()})
     for key, expression in (step.get("env") or {}).items():
@@ -366,6 +377,10 @@ def resolve_release_pull_request(doc: dict, context: dict) -> dict:
     return {"applies": "true", "number": resolve_run["outputs"]["number"], "calls": resolve_run["calls"]}
 
 
+RUN_STARTED_AT = "2026-10-06T12:00:00Z"
+ARMED_BEFORE_RUN = "2026-10-06T11:59:30Z"
+ARMED_AFTER_RUN = "2026-10-06T12:00:30Z"
+
 MARKER_A = "<!-- release-auto-merge-gate:aaaaaaaaaaaaaaaa -->"
 MARKER_B = "<!-- release-auto-merge-gate:bbbbbbbbbbbbbbbb -->"
 LEGACY_MARKER = "<!-- release-auto-merge-gate -->"
@@ -400,6 +415,50 @@ def run_hold(**context) -> dict:
 
 def commented(run: dict) -> bool:
     return bool(re.search(r"^pr comment", run["calls"], re.MULTILINE))
+
+
+def disarm_calls(run: dict) -> list[str]:
+    return [
+        line
+        for line in run["calls"].splitlines()
+        if "pr merge" in line and "--disable-auto" in line
+    ]
+
+
+def armed_at(enabled_at: str) -> str:
+    return json.dumps({"autoMergeRequest": {"enabledAt": enabled_at}})
+
+
+def check_hold_spares_a_newer_arm() -> list[str]:
+    failures: list[str] = []
+
+    newer = run_hold(pr_view=armed_at(ARMED_AFTER_RUN))
+    if disarm_calls(newer):
+        failures.append(
+            "the hold step disarmed an arm placed after this run started, so a verdict from an older head strips the arm a newer run placed and the release waits for the next executed slot"
+        )
+    if "Left the arm on #42 in place" not in newer["summary"]:
+        failures.append("the hold step did not say it left a newer arm in place")
+    if not commented(newer):
+        failures.append("a held release with a newer arm was left without its hold comment")
+
+    older = run_hold(pr_view=armed_at(ARMED_BEFORE_RUN))
+    if len(disarm_calls(older)) != 1:
+        failures.append("a release this run refused was left armed")
+
+    unarmed = run_hold()
+    if len(disarm_calls(unarmed)) != 1:
+        failures.append("a hold with nothing armed stopped asking for the disarm")
+
+    unreadable_pull = run_hold(pr_view_fail="1")
+    if len(disarm_calls(unreadable_pull)) != 1:
+        failures.append("an unreadable arm was left in place, so a refused release could still merge")
+
+    unreadable_run = run_hold(run_fail="1", pr_view=armed_at(ARMED_AFTER_RUN))
+    if len(disarm_calls(unreadable_run)) != 1:
+        failures.append("an unreadable run start was treated as an arm worth keeping")
+
+    return failures
 
 
 def check_hold_comment_refresh() -> list[str]:
@@ -688,6 +747,16 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
+    try:
+        arm_failures = check_hold_spares_a_newer_arm()
+    except StepFailure as error:
+        arm_failures = [str(error)]
+    if arm_failures:
+        print("FAIL: the hold step's treatment of another run's arm:", file=sys.stderr)
+        for failure in arm_failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
     print("PASS: no workflow interpolates expressions inside run:")
     print("PASS: an absent gate verdict fails the job before any step reads it")
     print("PASS: the refuse step skips schedule and still fails closed on every other event")
@@ -696,6 +765,7 @@ def main() -> int:
     print("PASS: a genuine release pull request resolves, and both empty exits stay empty")
     print("PASS: planted resolution mutations fail the genuine release check")
     print("PASS: the hold comment is refreshed when its reasons change and left alone when they do not")
+    print("PASS: the hold step leaves an arm another run placed after this run started and disarms the rest")
     return 0
 
 
