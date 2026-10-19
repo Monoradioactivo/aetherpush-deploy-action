@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   buildVerdict,
   classifyCommit,
+  DEFAULT_LABEL_ACTOR_ALLOWLIST,
   hasVerifiedTrailer,
   pickLatestTestConclusion,
   REQUIRED_TEST_CHECK,
@@ -15,6 +17,7 @@ import {
   holdCommentMarker,
   versionFromPayloads,
 } from "./check-release-auto-merge.mjs";
+import { DEFAULT_LABEL_ACTOR_ALLOWLIST as PROVENANCE_LABEL_ACTOR_ALLOWLIST } from "./commit-provenance.mjs";
 
 const noPullRequest = () => ({ missing: true });
 const verifiedPr = (number, testConclusion = "success", labelActor = "Monoradioactivo") => () => ({
@@ -413,6 +416,60 @@ test("a bump-shaped commit from another author is not blessed via the Renovate p
   );
   assert.equal(result.blessed, false);
   assert.equal(result.via, null);
+});
+
+test("the release vouch bot's label vouches for a Renovate pull request", () => {
+  const result = classifyCommit(
+    { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
+    () => ({
+      number: 49,
+      labels: ["brief-verified"],
+      author: "renovate[bot]",
+      labelActor: "aether-release-vouch[bot]",
+      testConclusion: "success",
+    }),
+  );
+  assert.equal(result.blessed, true);
+  assert.equal(result.via, "brief-verified label");
+});
+
+test("the Renovate agent App's label is refused", () => {
+  const result = classifyCommit(
+    { sha: "b1234ab000", message: "fix: hand-written change" },
+    () => ({
+      number: 49,
+      labels: ["brief-verified"],
+      author: "Monoradioactivo",
+      labelActor: "aether-renovate-dispatch[bot]",
+      testConclusion: "success",
+    }),
+  );
+  assert.equal(result.blessed, false);
+  assert.equal(result.refusedLabel, true);
+  assert.equal(result.labelActor, "aether-renovate-dispatch[bot]");
+});
+
+test("the gate and the provenance check accept the same label actors", () => {
+  assert.deepEqual(DEFAULT_LABEL_ACTOR_ALLOWLIST, ["Monoradioactivo", "aether-release-vouch[bot]"]);
+  assert.deepEqual(PROVENANCE_LABEL_ACTOR_ALLOWLIST, DEFAULT_LABEL_ACTOR_ALLOWLIST);
+});
+
+test("the gate workflow runs the gate script from main, not from the pull request head", () => {
+  const workflow = readFileSync(new URL("../workflows/auto-merge-release.yml", import.meta.url), "utf8");
+  const lines = workflow.replace(/\r\n/g, "\n").split("\n");
+  const starts = lines.flatMap((line, index) => (/^\s*(-\s+)?uses:\s*["']?actions\/checkout@/.test(line) ? [index] : []));
+  assert.equal(starts.length, 1);
+  const first = lines[starts[0]];
+  const boundary = /^\s*-\s/.test(first) ? first.search(/\S/) : first.search(/\S/) - 2;
+  const stepEnd = lines.findIndex((line, index) => index > starts[0] && line.trim() !== "" && line.search(/\S/) <= boundary);
+  const step = lines.slice(starts[0], stepEnd === -1 ? lines.length : stepEnd);
+  const withIndex = step.findIndex((line) => /^\s+with:\s*$/.test(line));
+  assert.notEqual(withIndex, -1);
+  const withIndent = step[withIndex].search(/\S/);
+  const nextKey = step.findIndex((line, index) => index > withIndex && line.trim() !== "" && line.search(/\S/) <= withIndent);
+  const block = step.slice(withIndex + 1, nextKey === -1 ? step.length : nextKey);
+  assert.ok(block.some((line) => /^\s+ref:\s*["']?main["']?\s*$/.test(line)));
+  assert.doesNotMatch(workflow, /git (fetch|checkout)\b/);
 });
 
 test("a Renovate pull request carrying the label still answers to the label allowlist", () => {
