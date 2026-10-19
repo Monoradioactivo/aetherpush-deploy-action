@@ -1,7 +1,7 @@
 export const DEFAULT_VERIFIED_LABEL = "brief-verified";
 export const REQUIRED_TEST_CHECK = "YAML lint";
 export const REQUIRED_TEST_APP = "github-actions";
-export const DEFAULT_LABEL_ACTOR_ALLOWLIST = ["Monoradioactivo"];
+export const DEFAULT_LABEL_ACTOR_ALLOWLIST = ["Monoradioactivo", "aether-release-vouch[bot]"];
 export const DEFAULT_RELEASE_BOT_LOGIN = "aetherpush-release-bot[bot]";
 export const DEFAULT_RENOVATE_BOT_LOGIN = "renovate[bot]";
 
