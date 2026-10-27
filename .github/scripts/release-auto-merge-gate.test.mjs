@@ -380,42 +380,16 @@ test("a non-bot release-shaped commit can still bless through the trailer path",
   assert.equal(result.via, "Brief-Verified trailer");
 });
 
-test("a Renovate pull request is blessed on its author once its test passed", () => {
+test("a Renovate pull request with a passing test and no trailer or label holds the release", () => {
   const result = classifyCommit(
     { sha: "b1234ab000", message: "chore(deps): update dependency cocoapods to v1.17.0" },
     renovatePr(61),
   );
-  assert.equal(result.blessed, true);
-  assert.equal(result.via, "Renovate pull request");
-});
-
-test("a Renovate pull request whose test failed is refused", () => {
-  const result = classifyCommit(
-    { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
-    renovatePr(49, "failure"),
-  );
-  assert.equal(result.blessed, false);
-  assert.equal(result.missingTest, true);
-  assert.equal(result.testConclusion, "failure");
-});
-
-test("a Renovate pull request with no test conclusion is refused", () => {
-  const result = classifyCommit(
-    { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
-    () => ({ number: 49, labels: [], author: "renovate[bot]" }),
-  );
-  assert.equal(result.blessed, false);
-  assert.equal(result.missingTest, true);
-  assert.equal(result.testConclusion, "absent");
-});
-
-test("a bump-shaped commit from another author is not blessed via the Renovate path", () => {
-  const result = classifyCommit(
-    { sha: "b1234ab000", message: "chore(deps): update dependency cocoapods to v1.17.0" },
-    () => ({ number: 61, labels: [], author: "dependabot[bot]", testConclusion: "success" }),
-  );
   assert.equal(result.blessed, false);
   assert.equal(result.via, null);
+  const verdict = buildVerdict({ baseTag: "v1.0.0", commits: [result], currentVersion: "1.0.0", releaseVersion: "1.0.1" });
+  assert.equal(verdict.ok, false);
+  assert.deepEqual(verdict.reasons, ["#61 (b1234ab) carries neither a Brief-Verified trailer nor the brief-verified label"]);
 });
 
 test("the release vouch bot's label vouches for a Renovate pull request", () => {
@@ -435,11 +409,11 @@ test("the release vouch bot's label vouches for a Renovate pull request", () => 
 
 test("the Renovate agent App's label is refused", () => {
   const result = classifyCommit(
-    { sha: "b1234ab000", message: "fix: hand-written change" },
+    { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
     () => ({
       number: 49,
       labels: ["brief-verified"],
-      author: "Monoradioactivo",
+      author: "renovate[bot]",
       labelActor: "aether-renovate-dispatch[bot]",
       testConclusion: "success",
     }),
@@ -488,26 +462,25 @@ test("a Renovate pull request carrying the label still answers to the label allo
   assert.equal(refused.labelActor, "a-stranger");
 });
 
-test("an unreadable author with no other vouch fails closed as unresolved", () => {
+test("an unreadable author on a commit with no trailer or label is reported as unvouched", () => {
   const result = classifyCommit(
     { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
     () => ({ number: 49, labels: [], authorUnread: true }),
   );
   assert.equal(result.blessed, false);
-  assert.equal(result.unresolved, true);
+  assert.equal(result.unresolved, undefined);
+  const verdict = buildVerdict({ baseTag: "v1.0.0", commits: [result], currentVersion: "1.0.0", releaseVersion: "1.0.1" });
+  assert.deepEqual(verdict.reasons, ["#49 (b1234ab) carries neither a Brief-Verified trailer nor the brief-verified label"]);
 });
 
-test("the Renovate author login is configurable", () => {
+test("a labelled commit whose Test conclusion was never read is refused as absent", () => {
   const result = classifyCommit(
     { sha: "b1234ab000", message: "fix(deps): update weekly updates" },
-    () => ({ number: 49, labels: [], author: "renovate-self-hosted[bot]", testConclusion: "success" }),
-    undefined,
-    undefined,
-    undefined,
-    "renovate-self-hosted[bot]",
+    () => ({ number: 49, labels: ["brief-verified"], labelActor: "Monoradioactivo" }),
   );
-  assert.equal(result.blessed, true);
-  assert.equal(result.via, "Renovate pull request");
+  assert.equal(result.blessed, false);
+  assert.equal(result.missingTest, true);
+  assert.equal(result.testConclusion, "absent");
 });
 
 test("an allowlisted label on a Renovate pull request is the vouch that is reported", () => {
@@ -525,7 +498,7 @@ test("an allowlisted label on a Renovate pull request is the vouch that is repor
   assert.equal(result.via, "brief-verified label");
 });
 
-test("a trailer on a Renovate pull request outranks the author path", () => {
+test("a trailer on a Renovate pull request is the vouch that is reported", () => {
   const result = classifyCommit(
     { sha: "b1234ab000", message: "fix(deps): update weekly updates\n\nBrief-Verified: a-brief" },
     renovatePr(49),
