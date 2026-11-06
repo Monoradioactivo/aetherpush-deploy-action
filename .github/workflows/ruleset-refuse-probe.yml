@@ -22,10 +22,11 @@ jobs:
       - name: Attempt refs/tags/v0.0.0-ruleset-probe
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
         run: |
           set +e
-          SHA=$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)
-          OUT=$(gh api -X POST "repos/${{ github.repository }}/git/refs" -f ref='refs/tags/v0.0.0-ruleset-probe' -f sha="$SHA" 2>&1)
+          SHA=$(gh api "repos/${REPO}/git/ref/heads/main" --jq .object.sha)
+          OUT=$(gh api -X POST "repos/${REPO}/git/refs" -f ref='refs/tags/v0.0.0-ruleset-probe' -f sha="$SHA" 2>&1)
           CODE=$?
           printf '%s\n' "$OUT"
           echo "exit=$CODE"
