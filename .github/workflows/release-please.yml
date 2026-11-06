@@ -9,28 +9,53 @@ permissions:
   contents: read
 
 jobs:
-  release-please:
-    name: Release PR / Tag
+  tag:
+    name: Tag / Release
+    runs-on: ubuntu-latest
+    environment: release-tags
+    permissions:
+      contents: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Generate tag App token
+        id: tag-app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RELEASE_TAG_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_TAG_BOT_PRIVATE_KEY }}
+
+      - name: Create tag and GitHub Release
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ steps.tag-app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
+
+  release-pr:
+    name: Release PR
+    needs: tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - name: Generate App token
+      - name: Generate release bot App token
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
-      - name: Run release-please
+      - name: Open or update release pull request
         id: release
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          skip-github-release: true
