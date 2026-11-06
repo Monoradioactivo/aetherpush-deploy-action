@@ -1,0 +1,41 @@
+name: Ruleset refuse probe
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Release-bot create must refuse
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate release-bot token
+        id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+      - name: Attempt refs/tags/v0.0.0-ruleset-probe
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set +e
+          SHA=$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)
+          OUT=$(gh api -X POST "repos/${{ github.repository }}/git/refs" -f ref='refs/tags/v0.0.0-ruleset-probe' -f sha="$SHA" 2>&1)
+          CODE=$?
+          printf '%s\n' "$OUT"
+          echo "exit=$CODE"
+          if printf '%s' "$OUT" | grep -q '"ref"'; then
+            echo "FAIL: tag was created; immutable ruleset will keep it"
+            exit 1
+          fi
+          if printf '%s' "$OUT" | grep -qE '422|403|Reference update failed|Resource not accessible|Ruleset'; then
+            echo "PASS: release-bot create refused"
+            exit 0
+          fi
+          echo "UNEXPECTED response"
+          exit 1
