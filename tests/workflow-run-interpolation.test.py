@@ -276,6 +276,7 @@ STEP_EXPRESSIONS = {
     "${{ steps.pr.outputs.number }}": "pr_number",
     "${{ steps.gate.outputs.reasons }}": "reasons",
     "${{ steps.gate.outputs.marker }}": "marker",
+    "${{ steps.gate.outputs.head }}": "evaluated_head",
 }
 
 
@@ -380,6 +381,8 @@ def resolve_release_pull_request(doc: dict, context: dict) -> dict:
 RUN_STARTED_AT = "2026-10-06T12:00:00Z"
 ARMED_BEFORE_RUN = "2026-10-06T11:59:30Z"
 ARMED_AFTER_RUN = "2026-10-06T12:00:30Z"
+EVAL_HEAD = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+LIVE_HEAD_OTHER = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 MARKER_A = "<!-- release-auto-merge-gate:aaaaaaaaaaaaaaaa -->"
 MARKER_B = "<!-- release-auto-merge-gate:bbbbbbbbbbbbbbbb -->"
@@ -396,21 +399,50 @@ def hold_comment(marker: str, reasons: str) -> str:
     return f"{marker}\nThis release is held for a human merge:\n\n{reasons}\n"
 
 
+def pr_view_payload(enabled_at: str | None = None, head_ref_oid: str = EVAL_HEAD) -> str:
+    payload: dict = {"headRefOid": head_ref_oid, "autoMergeRequest": None}
+    if enabled_at:
+        payload["autoMergeRequest"] = {"enabledAt": enabled_at}
+    return json.dumps(payload)
+
+
 def run_hold(**context) -> dict:
     doc = gate_workflow()
     steps = doc["jobs"]["gate"]["steps"]
     hold_at = index_of_step(steps, "Hold the release for a human")
     if hold_at == -1:
         raise StepFailure("the gate job lost its hold step")
+    pr_view = context.pop("pr_view", None)
+    evaluated_head = context.pop("evaluated_head", EVAL_HEAD)
     full = {
         "token": "stub-app-token",
         "pr_number": "42",
         "reasons": REASONS_A,
         "marker": MARKER_A,
         "comments": held_comments(),
+        "evaluated_head": evaluated_head,
+        "pr_view": pr_view if pr_view is not None else pr_view_payload(),
         **context,
     }
     return run_step(doc, steps[hold_at], full)
+
+
+def run_disarm_if_failed(**context) -> dict:
+    doc = gate_workflow()
+    steps = doc["jobs"]["gate"]["steps"]
+    disarm_at = index_of_step(steps, "Disarm if this run failed")
+    if disarm_at == -1:
+        raise StepFailure("the gate job lost its disarm-on-failure step")
+    pr_view = context.pop("pr_view", None)
+    evaluated_head = context.pop("evaluated_head", EVAL_HEAD)
+    full = {
+        "token": "stub-app-token",
+        "pr_number": "42",
+        "evaluated_head": evaluated_head,
+        "pr_view": pr_view if pr_view is not None else pr_view_payload(),
+        **context,
+    }
+    return run_step(doc, steps[disarm_at], full)
 
 
 def commented(run: dict) -> bool:
@@ -426,7 +458,7 @@ def disarm_calls(run: dict) -> list[str]:
 
 
 def armed_at(enabled_at: str) -> str:
-    return json.dumps({"autoMergeRequest": {"enabledAt": enabled_at}})
+    return pr_view_payload(enabled_at=enabled_at)
 
 
 def check_hold_spares_a_newer_arm() -> list[str]:
@@ -458,6 +490,42 @@ def check_hold_spares_a_newer_arm() -> list[str]:
     if len(disarm_calls(unreadable_run)) != 1:
         failures.append("an unreadable run start was treated as an arm worth keeping")
 
+    stale_head = run_hold(
+        evaluated_head=EVAL_HEAD,
+        pr_view=pr_view_payload(enabled_at=ARMED_BEFORE_RUN, head_ref_oid=LIVE_HEAD_OTHER),
+    )
+    if disarm_calls(stale_head):
+        failures.append("a stale hold disarmed a newer head's arm")
+    if commented(stale_head):
+        failures.append("a stale hold commented reasons that no longer describe the head")
+    if f"evaluated {EVAL_HEAD}" not in stale_head["summary"]:
+        failures.append("a stale hold did not name the evaluated head in the step summary")
+    if f"now {LIVE_HEAD_OTHER}" not in stale_head["summary"]:
+        failures.append("a stale hold did not name the live head in the step summary")
+
+    empty_head = run_hold(
+        evaluated_head="",
+        pr_view=pr_view_payload(enabled_at=ARMED_BEFORE_RUN, head_ref_oid=LIVE_HEAD_OTHER),
+    )
+    if len(disarm_calls(empty_head)) != 1:
+        failures.append("an empty evaluated head was treated as a head mismatch and left the arm")
+
+    return failures
+
+
+def check_hold_disarm_head() -> list[str]:
+    failures: list[str] = []
+    stale = run_disarm_if_failed(
+        evaluated_head=EVAL_HEAD,
+        pr_view=pr_view_payload(head_ref_oid=LIVE_HEAD_OTHER),
+    )
+    if disarm_calls(stale):
+        failures.append("Disarm if this run failed wiped an arm for a newer head")
+    if "Left #42 armed" not in stale["summary"]:
+        failures.append("a head-mismatched disarm did not say it left the arm in place")
+    same_head = run_disarm_if_failed()
+    if len(disarm_calls(same_head)) != 1:
+        failures.append("a failed-run disarm on the same head stopped asking for the disarm")
     return failures
 
 
@@ -471,6 +539,10 @@ def check_hold_comment_refresh() -> list[str]:
     hold = steps[hold_at]
     if (hold.get("env") or {}).get("MARKER_ID") != "${{ steps.gate.outputs.marker }}":
         failures.append("the hold step no longer reads the marker the gate writes")
+    if (hold.get("env") or {}).get("REASONS") != "${{ steps.gate.outputs.reasons }}":
+        failures.append("the hold step no longer reads the reasons the gate writes")
+    if (hold.get("env") or {}).get("EVALUATED_HEAD") != "${{ steps.gate.outputs.head }}":
+        failures.append("the hold step no longer reads the evaluated head the gate writes")
 
     if not commented(run_hold()):
         failures.append("a held release with no hold comment yet was left without one")
@@ -757,6 +829,16 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         return 1
 
+    try:
+        disarm_head_failures = check_hold_disarm_head()
+    except StepFailure as error:
+        disarm_head_failures = [str(error)]
+    if disarm_head_failures:
+        print("FAIL: the disarm step's head pin:", file=sys.stderr)
+        for failure in disarm_head_failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
     print("PASS: no workflow interpolates expressions inside run:")
     print("PASS: an absent gate verdict fails the job before any step reads it")
     print("PASS: the refuse step skips schedule and still fails closed on every other event")
@@ -766,6 +848,7 @@ def main() -> int:
     print("PASS: planted resolution mutations fail the genuine release check")
     print("PASS: the hold comment is refreshed when its reasons change and left alone when they do not")
     print("PASS: the hold step leaves an arm another run placed after this run started and disarms the rest")
+    print("PASS: a stale hold or disarm leaves the arm when the evaluated head no longer matches")
     return 0
 
 

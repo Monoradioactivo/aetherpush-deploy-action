@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.7](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.6...v0.6.7) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update actions/setup-node action to v7 ([#77](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/77)) ([8de443f](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/8de443ff6821bf94e984c173cf0dd9eca4cdf5f3))
+
 ## [0.6.6](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.5...v0.6.6) (2026-10-12)
 
 
