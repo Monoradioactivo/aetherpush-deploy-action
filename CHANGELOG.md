@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.7...v0.7.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **action:** a use-hermes value other than true, false or empty (for example yes, no or 0) now fails the release-react step before anything is uploaded. Before, the action ignored it.
+
+### Features
+
+* **action:** let use-hermes false skip Hermes compilation ([#104](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/104)) ([8a2cfec](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/8a2cfec63a7c316c9701006b68037d1cb1d91e02))
+
 ## [0.6.7](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.6.6...v0.6.7) (2026-10-27)
 
 
