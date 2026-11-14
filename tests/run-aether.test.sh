@@ -121,7 +121,7 @@ run_case() {
     export OUTPUT_DIR="${OUTPUT_DIR:-}"
     export SOURCEMAP_OUTPUT="${SOURCEMAP_OUTPUT:-}"
     export PRIVATE_KEY_PATH="${PRIVATE_KEY_PATH:-}"
-    export USE_HERMES="${USE_HERMES:-false}"
+    export USE_HERMES="${USE_HERMES:-}"
     export DEVELOPMENT="${DEVELOPMENT:-false}"
     if [ -n "${AETHER_SCRIPT_BODY:-}" ]; then
       bash -c "$AETHER_SCRIPT_BODY"
@@ -168,6 +168,45 @@ arg=100
 arg=-k
 arg='"$test_tmp_root"'/signing.pem
 arg=--json'
+
+USE_HERMES=true PLATFORM=android run_case \
+  hermes-forced unsigned.stdout 0 unsigned 'Running: aether release-react' \
+  'arg=release-react
+arg=FixtureApp
+arg=android
+arg=-d
+arg=Staging
+arg=-r
+arg=100
+arg=--useHermes
+arg=--json'
+
+USE_HERMES=false PLATFORM=android run_case \
+  hermes-opt-out unsigned.stdout 0 unsigned 'Running: aether release-react' \
+  'arg=release-react
+arg=FixtureApp
+arg=android
+arg=-d
+arg=Staging
+arg=-r
+arg=100
+arg=--useHermes=false
+arg=--json'
+
+USE_HERMES=False PLATFORM=android run_case \
+  hermes-opt-out-capitalized unsigned.stdout 0 unsigned 'Running: aether release-react' \
+  'arg=release-react
+arg=FixtureApp
+arg=android
+arg=-d
+arg=Staging
+arg=-r
+arg=100
+arg=--useHermes=false
+arg=--json'
+
+USE_HERMES=yes PLATFORM=android run_case \
+  hermes-unrecognized unsigned.stdout 1 failure "::error::Input 'use-hermes' must be 'true', 'false' or empty."
 
 COMMAND=release UPDATE_PATH=./bundle.js TARGET_BIN=2.0.0 DEPLOYMENT_NAME=Production ROLLOUT=25 DESCRIPTION='fixture release' CI_METADATA=false run_case \
   unsigned unsigned.stdout 0 unsigned 'Running: aether release' \
@@ -230,4 +269,4 @@ set -e
 grep -Fq '::error::RUNNER_TEMP is unset or not a directory' "$unset_dir/log" || fail "unset RUNNER_TEMP diagnostic"
 [ ! -e "$unset_dir/work/release.json" ] || fail "unset RUNNER_TEMP wrote workspace release.json"
 
-printf 'PASS: 7 step script executions (6 fixture cases, 1 unset RUNNER_TEMP)\n'
+printf 'PASS: 11 step script executions (10 fixture cases, 1 unset RUNNER_TEMP)\n'
