@@ -57,7 +57,15 @@ case "$COMMAND" in
     [ -n "$OUTPUT_DIR" ] && args+=(-o "$OUTPUT_DIR")
     [ -n "$SOURCEMAP_OUTPUT" ] && args+=(-s "$SOURCEMAP_OUTPUT")
     [ -n "$PRIVATE_KEY_PATH" ] && args+=(-k "$PRIVATE_KEY_PATH")
-    [ "$USE_HERMES" = "true" ] && args+=(--useHermes)
+    case "$(printf '%s' "$USE_HERMES" | tr '[:upper:]' '[:lower:]')" in
+      true) args+=(--useHermes) ;;
+      false) args+=(--useHermes=false) ;;
+      "") ;;
+      *)
+        echo "::error::Input 'use-hermes' must be 'true', 'false' or empty."
+        exit 1
+        ;;
+    esac
     [ "$DEVELOPMENT" = "true" ] && args+=(--development)
     [ "$MANDATORY" = "true" ] && args+=(-m)
     [ "$DISABLED" = "true" ] && args+=(-x)

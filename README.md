@@ -94,7 +94,7 @@ so they don't belong in CI.
 | `entry-file` | no | App entry JS file. |
 | `gradle-file` | no | build.gradle path (Android). |
 | `plist-file` | no | Info.plist path (iOS). |
-| `use-hermes` | no | Enable Hermes. |
+| `use-hermes` | no | Leave empty to let the CLI detect Hermes from the project. `true` compiles to Hermes bytecode without checking. `false` releases plain JavaScript even when Hermes is detected, from CLI 0.10.0 on; older CLIs treat it like empty. Any other value fails the step. |
 | `development` | no | Build a dev bundle. |
 | `output-dir` | no | Where to write bundle and sourcemap. |
 | `sourcemap-output` | no | Sourcemap path. |

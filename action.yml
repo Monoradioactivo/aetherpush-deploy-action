@@ -134,9 +134,9 @@ inputs:
     default: ''
 
   use-hermes:
-    description: '`release-react` only. Enable Hermes and bypass automatic detection checks.'
+    description: '`release-react` only. Empty: the CLI detects Hermes. `true`: always compile to Hermes bytecode. `false`: plain JavaScript even when Hermes is detected (CLI 0.10.0+).'
     required: false
-    default: 'false'
+    default: ''
 
   development:
     description: '`release-react` only. Build a development bundle instead of release.'
