@@ -8,6 +8,10 @@ name: Release Please
 permissions:
   contents: read
 
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
 jobs:
   tag:
     name: Tag / Release
@@ -16,8 +20,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      tag_step: ${{ steps.release.outcome }}
     steps:
       - name: Generate tag App token
         id: tag-app-token
@@ -28,6 +31,8 @@ jobs:
 
       - name: Create tag and GitHub Release
         id: release
+        continue-on-error: true
+        timeout-minutes: 5
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ steps.tag-app-token.outputs.token }}
@@ -51,11 +56,49 @@ jobs:
           app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - name: Settle merged release pull requests
+        timeout-minutes: 5
+        env:
+          RELEASE_BOT_TOKEN: ${{ steps.app-token.outputs.token }}
+          TAG_STEP_OUTCOME: ${{ needs.tag.outputs.tag_step }}
+        run: node .github/scripts/settle-release-labels.mjs
+
       - name: Open or update release pull request
         id: release
+        timeout-minutes: 5
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true
+
+  alert:
+    name: Alert on failure
+    needs:
+      - tag
+      - release-pr
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Post to the ops channel
+        env:
+          DISCORD_OPS_WEBHOOK_URL: ${{ secrets.DISCORD_OPS_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -n --arg content "Release Please failed on ${GITHUB_REPOSITORY}: ${RUN_URL}" \
+            '{content: $content, allowed_mentions: {parse: []}}')
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            -H "Content-Type: application/json" -H "User-Agent: AetherOps/1.0" \
+            --data "$payload" "${DISCORD_OPS_WEBHOOK_URL}?wait=true"
