@@ -35,7 +35,7 @@ jobs:
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
-          app-name: my-rn-app
+          app-name: MyApp-Android
           command: release-react
           platform: android
           target-binary-version: 1.4.0
@@ -63,7 +63,7 @@ so they don't belong in CI.
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `access-key` | yes | | Aether API key (`aether_sk_live_…`). |
-| `app-name` | yes | | App to release to. |
+| `app-name` | yes | | App to release to. Use one app per platform, such as `MyApp-iOS` and `MyApp-Android`. |
 | `command` | no | `release-react` | `release` or `release-react`. |
 | `deployment-name` | no | `Staging` | Deployment channel. |
 | `description` | no | | Release description. |
@@ -152,7 +152,7 @@ and target version.
 # x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
-    app-name: my-app
+    app-name: MyApp-iOS
     command: release
     update-contents-path: ./build/main.jsbundle
     target-binary-version: 1.0.0
@@ -170,7 +170,7 @@ and target version.
 # x-release-please-end
   with:
     access-key: ${{ secrets.AETHER_ACCESS_KEY }}
-    app-name: my-rn-app
+    app-name: MyApp-Android
     command: release-react
     platform: android
     deployment-name: Production
@@ -201,7 +201,7 @@ jobs:
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
-          app-name: my-rn-app
+          app-name: MyApp-Android
           command: release-react
           platform: android
           target-binary-version: 1.4.0
@@ -235,7 +235,7 @@ jobs:
       # x-release-please-end
         with:
           access-key: ${{ secrets.AETHER_ACCESS_KEY }}
-          app-name: my-rn-app
+          app-name: MyApp-Android
           command: release-react
           platform: android
           target-binary-version: 1.4.0
