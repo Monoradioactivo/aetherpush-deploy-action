@@ -70,8 +70,6 @@
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 3,
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboard": {
-    "enabled": true
-  },
+  "dependencyDashboard": true,
   "configMigration": true
 }
