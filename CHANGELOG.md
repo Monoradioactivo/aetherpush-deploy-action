@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.7.2...v0.7.3) (2026-11-26)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @aetherpush/cli to v0.14.0 ([#116](https://github.com/Monoradioactivo/aetherpush-deploy-action/issues/116)) ([882b87f](https://github.com/Monoradioactivo/aetherpush-deploy-action/commit/882b87f4d5ed02dbcc1ada8f420850cd51deaa7c))
+
 ## [0.7.2](https://github.com/Monoradioactivo/aetherpush-deploy-action/compare/v0.7.1...v0.7.2) (2026-11-23)
 
 
