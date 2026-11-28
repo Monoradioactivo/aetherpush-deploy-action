@@ -26,7 +26,7 @@ jobs:
         id: tag-app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.RELEASE_TAG_BOT_APP_ID }}
+          client-id: Iv23liOKY3YtGKgRkSKK
           private-key: ${{ secrets.RELEASE_TAG_BOT_PRIVATE_KEY }}
 
       - name: Create tag and GitHub Release
@@ -53,7 +53,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          client-id: Iv23lio9T0bHLSDEujzR
           private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
       - name: Check out main
